@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import {Link} from 'react-router-dom'
 
-function Singup() {
+function Login() {
   const [user, setUser] = useState(null);
 
   const handleSuccess = async (credentialResponse) => {
@@ -18,17 +18,17 @@ function Singup() {
 
       // Save your JWT or session token
       localStorage.setItem("token", res.data.token);
-      setUser(res.data.user);
-      alert("Login successful! Welcome " + res.data.user.name);
+    setUser(res.data.user);
+    alert("Login successful! Welcome " + res.data.user.name);
     } catch (error) {
       console.log("error :", error.message);
-      alert("Authentication failed. Please try again.");
+    alert("Authentication failed. Please try again.");
     }
   };
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-100">
       <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full">
-        <h2 className="text-2xl font-bold text-center mb-6">Create Account</h2>
+        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
 
         <GoogleLogin
           onSuccess={handleSuccess}
@@ -40,14 +40,14 @@ function Singup() {
               alt="Google"
               className="w-5 h-5"
             />
-            Sign up with Google
+           login with Google
           </button>
         </GoogleLogin>
 
         <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <Link to="/login" className="text-blue-600 hover:text-blue-500">
-            Login
+          Don't have an account?{" "}
+          <Link to="/singup" className="text-blue-600 hover:text-blue-500">
+            Sign up
           </Link>
         </p>
       </div>
@@ -55,4 +55,4 @@ function Singup() {
   );
 }
 
-export default Singup;
+export default Login;
