@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
-import {Link} from 'react-router-dom'
+import {Link, useNavigate} from 'react-router-dom'
 
 function Login() {
   const [user, setUser] = useState(null);
+    const navigete=useNavigate();
 
   const handleSuccess = async (credentialResponse) => {
     try {
@@ -19,7 +20,8 @@ function Login() {
       // Save your JWT or session token
       localStorage.setItem("token", res.data.token);
     setUser(res.data.user);
-    alert("Login successful! Welcome " + res.data.user.name);
+    navigete("/");
+  
     } catch (error) {
       console.log("error :", error.message);
     alert("Authentication failed. Please try again.");

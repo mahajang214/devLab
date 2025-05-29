@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import Singup from "./component/singup/Singup";
 import Login from "./component/login/login";
+import ProtectedRoute from "./component/protection/ProtectedRoute";
+import HomePage from "./component/home/HomePage";
 
 function App() {
   return (
@@ -11,6 +13,10 @@ function App() {
         <Routes>
           <Route path="/singup" element={<Singup />} />
           <Route path="/login" element={<Login />} />
+          {/* security */}
+          <Route element={<ProtectedRoute/>}>
+              <Route path="/" element={<HomePage/>} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </GoogleOAuthProvider>
