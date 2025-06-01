@@ -6,12 +6,7 @@ import axios from 'axios';
 
 function Nav() {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchCoders, setSearchCoders] = useState(null);
-  const [searchProjects, setSearchProjects] = useState(null);
-  const [goCoders, setGoCoders] = useState(false);
-  const [goProjects, setGoProjects] = useState(false);
-  const [getCoders, setGetCoders] = useState([]);
-  const [getProjects, setGetProjects] = useState([]);
+  
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);

@@ -9,6 +9,8 @@ import HomePage from "./component/home/HomePage";
 import Followings from "./component/followings/Followings";
 import Coders from "./component/coders/Coders";
 import Projects from "./component/projects/Projects";
+import Followers from "./component/followers/Followers";
+import Code from "./component/codingEnv/Code";
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
               <Route path="/followings" element={<Followings/>}/>
               <Route path="/coders" element={<Coders/>}/>
               <Route path="/projects" element={<Projects/>}/>
+              <Route path="/followers" element={<Followers/>}/>
+              <Route path="/code" element={<Code/>}/>
           </Route>
         </Routes>
       </BrowserRouter>
