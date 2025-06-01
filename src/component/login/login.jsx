@@ -2,10 +2,15 @@ import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import {Link, useNavigate} from 'react-router-dom'
+import userStore from "../context/store";
 
 function Login() {
   const [user, setUser] = useState(null);
     const navigete=useNavigate();
+    // const { setUsername, setUserId } = userStore((state) => ({
+    //   setUsername: state.setUsername,
+    //   setUserId: state.setUserId,
+    // }));
 
   const handleSuccess = async (credentialResponse) => {
     try {
@@ -13,13 +18,27 @@ function Login() {
       // console.log("google credentials: ", idToken);
 
       // Send to backend
-      const res = await axios.post("http://localhost:3001/auth/google", {
+      const res = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/google`, {
         token: idToken,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        withCredentials: true
       });
 
+      // console.log("token:",res.data.token);
+      // document.cookie = `token=${res.data.token};`;
+      // console.log("document cookie:",document.cookie);
       // Save your JWT or session token
       localStorage.setItem("token", res.data.token);
-    setUser(res.data.user);
+
+// console.log("data:",res.data.user.firstName)
+    const { setUsername, setUserId } = userStore.getState();
+    setUsername(res.data.user.firstName);
+    setUserId(res.data.user._id);
+    // setUser(res.data.user);
     navigete("/");
   
     } catch (error) {
