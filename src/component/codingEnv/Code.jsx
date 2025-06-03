@@ -7,19 +7,26 @@ import { SendHorizontal, Send } from "lucide-react";
 function Code() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAIChatOpen, setIsAIChatOpen] = useState(true);
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(``);
   const [output, setOutput] = useState("");
   const [sendMessage, setSendMessage] = useState("");
   const [getAllMessages, setGetAllMessages] = useState([]);
   const [query, setQuery] = useState("");
-  const [aiResponse, setAiResponse] = useState([]);
+  const [aiResponse, setAiResponse] = useState([{ question: "", answer: "" }]);
 
   const username = userStore((state) => state.username);
   const userId = userStore((state) => state.userId);
   const projectID = userStore((state) => state.projectID);
   const projectName = userStore((state) => state.projectName);
   const userPic = userStore((state) => state.userPic);
+
   const messageHandler = async () => {
+    // console.log("Username:", username);
+    // console.log("User ID:", userId);
+    // console.log("Project ID:", projectID);
+    // console.log("Project Name:", projectName);
+    // console.log("User Picture:", userPic);
+
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/chat/send`,
@@ -60,8 +67,8 @@ function Code() {
         }
       );
 
-      console.log("All messages successully fetched");
-      console.log("fetch messages:", res.data.data);
+      // console.log("All messages successully fetched");
+      // console.log("fetch messages:", res.data.data);
       setGetAllMessages(res.data.data);
     } catch (error) {
       console.log("error:", error.message);
@@ -77,16 +84,16 @@ function Code() {
   // Function to handle code compilation
   const handleRunCode = async () => {
     try {
-      // Here you would typically make an API call to your backend to compile/run the code
-      // For now, we'll just simulate a response
-      setOutput("Compiling and running code...\n");
-
-      // Simulate API call
-      const response = await new Promise((resolve) =>
-        setTimeout(() => resolve({ data: "Code executed successfully!" }), 1000)
-      );
-
-      setOutput((prev) => prev + response.data);
+      const res=await axios.post(`${import.meta.env.VITE_BASE_URL}/code/update`,{
+        code:code,
+        language: "javascript"
+      },{
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      setOutput(res.data.data);
+      // console.log("Code execution done");
     } catch (error) {
       setOutput(`Error: ${error.message}`);
     }
@@ -94,10 +101,10 @@ function Code() {
 
   // open ai api
   const sendPropmt = async () => {
-    if(!query){
+    if (!query) {
       return console.log("error: Search box is empty");
     }
-    
+
     try {
       const res = await axios.post(
         "https://openrouter.ai/api/v1/chat/completions",
@@ -107,18 +114,21 @@ function Code() {
         },
         {
           headers: {
-            "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+            Authorization: `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
             "Content-Type": "application/json",
           },
         }
       );
-  
+
       // const reply = ;
 
       // console.log("All messages successully fetched");
       // console.log("ai response data:", res.data.data);
       // setGetAllMessages(res.data.data);
-      setAiResponse(prev=>[...prev, res.data.choices[0]?.message?.content]);
+      setAiResponse((prev) => [
+        ...prev,
+        { question: query, answer: res.data.choices[0]?.message?.content },
+      ]);
       setQuery("");
     } catch (error) {
       console.log("error:", error.message);
@@ -133,6 +143,7 @@ function Code() {
     <>
       <Nav />
       <div className="flex h-[calc(100vh-64px)]">
+        
         {/* Left Sidebar - 20% width */}
         <div
           className={`${
@@ -176,95 +187,100 @@ function Code() {
           {/* Chat List */}
           <div className="flex-1 overflow-hidden py-10 px-3  mb-1 ">
             {isSidebarOpen && (
-              <h3 className="font-semibold mb-4">Project Name Chats</h3>
+              <h3 className="font-semibold mb-4">{projectName} Chats</h3>
             )}
             {/* Chat list items would go here */}
 
             {isSidebarOpen && (
               <div className="space-y-2 overflow-y-auto  h-full ">
                 {/* Demo Messages */}
-                {getAllMessages.map((message) => {
-                  // console.log("message.from=userID",message.from === userId);
-                  if (message.from === userId) {
-                    // console.log("message:",message.fromPic);
-                    return (
-                      <div
-                        key={message._id}
-                        className={`p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer ml-auto 
-                         w-[75%] bg-white`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden`}
-                          >
-                            <iframe
-                              src={message.fromPic}
-                              title={message.fromName}
-                              className="w-full h-full object-cover"
-                              frameBorder="0"
-                              allowFullScreen
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center">
-                              <p className="text-sm font-medium text-gray-700">
-                                {message.fromName}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(message.updatedAt).toLocaleTimeString(
-                                  [],
-                                  { hour: "2-digit", minute: "2-digit" }
-                                )}
-                              </p>
-                            </div>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {message.message}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div
-                        key={message._id}
-                        className={`p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer ${
-                          message.senderName === "Wizard" ? "ml-auto" : ""
-                        } w-[75%] bg-white`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-10 h-10  rounded-full flex items-center justify-center overflow-hidden`}
-                          >
-                            <iframe
-                              src={message.fromPic}
-                              title={message.fromName}
-                              className="w-full h-full object-cover"
-                              frameBorder="0"
-                              allowFullScreen
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center">
-                              <p className="text-sm font-medium text-gray-700">
-                                {message.fromName}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(message.updatedAt).toLocaleTimeString(
-                                  [],
-                                  { hour: "2-digit", minute: "2-digit" }
-                                )}
-                              </p>
-                            </div>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {message.message}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
+                <div ref={(el) => {
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
                   }
-                })}
+
+                }} className="space-y-2 overflow-y-auto  h-full ">
+                  {getAllMessages.map((message) => {
+                    if (message.from === userId) {
+                      return (
+                        <div
+                          key={message._id}
+                          className={`p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer ml-auto 
+                           w-[75%] bg-white`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden`}
+                            >
+                              <iframe
+                                src={message.fromPic}
+                                title={message.fromName}
+                                className="w-full h-full object-cover"
+                                frameBorder="0"
+                                allowFullScreen
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center">
+                                <p className="text-sm font-medium text-gray-700">
+                                  {message.fromName}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(message.updatedAt).toLocaleTimeString(
+                                    [],
+                                    { hour: "2-digit", minute: "2-digit" }
+                                  )}
+                                </p>
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {message.message}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div
+                          key={message._id} 
+                          className={`p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer ${
+                            message.senderName === "Wizard" ? "ml-auto" : ""
+                          } w-[75%] bg-white`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-10 h-10  rounded-full flex items-center justify-center overflow-hidden`}
+                            >
+                              <iframe
+                                src={message.fromPic}
+                                title={message.fromName}
+                                className="w-full h-full object-cover"
+                                frameBorder="0"
+                                allowFullScreen
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-center">
+                                <p className="text-sm font-medium text-gray-700">
+                                  {message.fromName}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(message.updatedAt).toLocaleTimeString(
+                                    [],
+                                    { hour: "2-digit", minute: "2-digit" }
+                                  )}
+                                </p>
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {message.message}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -368,24 +384,27 @@ function Code() {
                 <h3 className="font-semibold mb-2">AI Assistant</h3>
                 <div className="flex-1 bg-white rounded-lg p-4 mb-2 overflow-y-auto">
                   {/* Chat messages would go here */}
-                {aiResponse && (
-                  <div className="space-y-4">
-                    {aiResponse.map((response, index) => (
-                      <div key={index} className="flex  items-start gap-3">
-                        <div className="flex-shrink-0">
-                          <img
-                            src={userPic}
-                            alt="AI "
-                            className="w-8 h-8 rounded-full"
-                          />
+                  {aiResponse && aiResponse.length > 0 && (
+                    <div className={`space-y-4 `}>
+                      {aiResponse.map((response, index) => (
+                        <div key={index} className={`flex items-start gap-3 `}>
+                          <div className="flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                              <span className="text-white font-bold">AI</span>
+                            </div>
+                          </div>
+                          <div className="flex-1 bg-blue-50 rounded-lg p-3 shadow-sm" ref={(el) => {
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          }}>
+                            <p className="text-blue-800 font-medium mb-2">{response.question}</p>
+                            <p className="text-gray-700">{response.answer || "How can I help you with your project today? I can assist with coding, debugging, or provide guidance on best practices."}</p>
+                          </div>
                         </div>
-                        <div className="flex-1 bg-gray-100 rounded-lg p-3">
-                          <p className=" text-gray-800 text-lg">{response}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  ) }
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -399,7 +418,7 @@ function Code() {
                     onClick={sendPropmt}
                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                   >
-                    <SendHorizontal/>
+                    <SendHorizontal />
                   </button>
                 </div>
               </div>

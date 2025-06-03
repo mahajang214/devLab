@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, Users, LogOut, Info, X } from "lucide-react";
+import { Plus, Trash2, Users, LogOut, Info, X, Code } from "lucide-react";
 import axios from "axios";
 import Nav from "../nav/Nav";
 import userStore from "../context/store";
@@ -28,32 +28,13 @@ const HomePage = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [createNewProject, setCreateNewProject] = useState(false);
   const [selectedCollabs, setSelectedCollabs] = useState([]);
-  const [showFollowers, setShowFollowers] = useState([]);
-  const [followers, setFollowers] = useState([]);
-
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [collabedWith, setCollabedWith] = useState([]);
+const [collaborations, setCollaborations] = useState([]);
   const navigate=useNavigate();
   // console.log("usernaem:",username);
-  useEffect(() => {
-    
-    const getProjects = async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/main/projects`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-        // console.log("data:",response.data.data)
-        setProjects(response.data.data);
-        // console.log("Projects data:", response.data.data);
-      } catch (error) {
-        console.error("Error fetching projects:", error.message);
-      }
-    };
-    getProjects();
-  }, []);
+  
+  
 
   const handleDelete = async(id) => {
 // console.log("id",id);
@@ -71,7 +52,19 @@ const HomePage = () => {
     }
   };
 
- 
+  const collabedWithProjects=async (req,res) => {
+    try {
+      const res=await axios.get(`${import.meta.env.VITE_BASE_URL}/main/collabedWith`,{
+        headers:{
+          Authorization:`Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      // console.log("collabed projects:",res.data.data);
+      setCollaborations(res.data.data);
+    } catch (error) {
+      console.log("error:",error.message);
+    }
+  }
 
  
 
@@ -123,6 +116,28 @@ const HomePage = () => {
       console.error(error.message);
     }
   };
+  useEffect(() => {
+    
+    const getProjects = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/main/projects`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        // console.log("data:",response.data.data)
+        setProjects(response.data.data);
+        // console.log("Projects data:", response.data.data);
+      } catch (error) {
+        console.error("Error fetching projects:", error.message);
+      }
+    };
+    getProjects();
+    collabedWithProjects();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -291,7 +306,7 @@ const HomePage = () => {
           ) : (
             <div className="space-y-4">
               {projects.map((project, k) => {
-                // console.log("el:",project);
+                // console.log("my projects data:",project);
                 return (
                   <div key={k}>
                     <div className="bg-white rounded-xl shadow-md p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -383,6 +398,61 @@ const HomePage = () => {
             </div>
           )}
         </div>
+
+      <div className="mt-8 flex-1 max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">Collaborations</h1>
+        {collaborations.length === 0 ? (
+          <div className="text-center text-gray-500">
+            No collaborations found
+          </div>
+        ) : (
+          <div className="grid grid-cols-1  gap-4">
+            {collaborations.map((project) => {
+                // console.log("collabs projects data:",project);
+              return (
+                <div
+                  key={project._id}
+                  className="bg-white rounded-xl shadow-md p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full"
+                >
+                  <div className="flex justify-between items-center w-full">
+                    <div>
+                      <h2 className="text-lg font-semibold">Project Name : {project.projectName}</h2>
+                      <p className="text-gray-600">Owner : {project.ownerName}</p>
+                    </div>
+                    <div className="flex gap-2">
+                    <button
+                          onClick={() => {
+                            userStore.getState().setProjectId(project._id);
+                            userStore.getState().setProjectName(project.projectName);
+                            // console.log("project details:",project._id);
+                            navigate('/code');
+                          }}
+                          className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full hover:bg-green-200 cursor-pointer"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Code
+                        </button>
+                    </div>
+                  </div>
+                  
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       </main>
     </div>
   );
