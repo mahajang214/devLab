@@ -35,9 +35,10 @@ function Login() {
       localStorage.setItem("token", res.data.token);
 
 // console.log("data:",res.data.user.firstName)
-    const { setUsername, setUserId } = userStore.getState();
+    const { setUsername, setUserId,setUserPic } = userStore.getState();
     setUsername(res.data.user.firstName);
     setUserId(res.data.user._id);
+    setUserPic(res.data.user.picture);
     // setUser(res.data.user);
     navigete("/");
   

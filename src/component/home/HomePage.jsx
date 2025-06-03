@@ -5,6 +5,7 @@ import Nav from "../nav/Nav";
 import userStore from "../context/store";
 import { motion } from "framer-motion";
 import { toast } from 'react-toastify';
+import { useNavigate } from "react-router-dom";
 const toastOptions = {
   position: "top-right",
   autoClose: 3000,
@@ -29,6 +30,8 @@ const HomePage = () => {
   const [selectedCollabs, setSelectedCollabs] = useState([]);
   const [showFollowers, setShowFollowers] = useState([]);
   const [followers, setFollowers] = useState([]);
+
+  const navigate=useNavigate();
   // console.log("usernaem:",username);
   useEffect(() => {
     
@@ -296,6 +299,28 @@ const HomePage = () => {
                         {project.projectName}
                       </span>
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            userStore.getState().setProjectId(project.projectID);
+                            userStore.getState().setProjectName(project.projectName);
+                            navigate('/code');
+                          }}
+                          className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full hover:bg-green-200 cursor-pointer"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Code
+                        </button>
                         <button
                           onClick={() => {
                             if (showDetails && singleProject.id === project.id) {
