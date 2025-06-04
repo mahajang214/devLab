@@ -29,6 +29,7 @@ const HomePage = () => {
   const [createNewProject, setCreateNewProject] = useState(false);
   const [selectedCollabs, setSelectedCollabs] = useState([]);
   const [showFollowers, setShowFollowers] = useState(false);
+  const [followers, setFollowers] = useState([]);
   const [collabedWith, setCollabedWith] = useState([]);
 const [collaborations, setCollaborations] = useState([]);
   const navigate=useNavigate();
@@ -77,7 +78,6 @@ const [collaborations, setCollaborations] = useState([]);
       `${import.meta.env.VITE_BASE_URL}/main/create`,
       {
         projectName: e.target.projectName.value,
-        folderName: e.target.folderName.value,
         collabs: selectedCollabs,
         description: e.target.description.value,
       },
@@ -88,7 +88,7 @@ const [collaborations, setCollaborations] = useState([]);
       }
     );
     // console.log("res.data:",response.data);
-    setProjects(prev => [response.data, ...prev]);
+    setProjects(prev => [...prev, response.data]);
     setCreateNewProject(false);
 
  
@@ -204,17 +204,7 @@ const [collaborations, setCollaborations] = useState([]);
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Folder Name
-                      </label>
-                      <input
-                        type="text"
-                        name="folderName"
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
+                    
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Collaborators

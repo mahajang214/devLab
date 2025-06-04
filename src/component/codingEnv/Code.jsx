@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import Nav from "../nav/Nav";
 import axios from "axios";
 import userStore from "../context/store";
-import { SendHorizontal, Send } from "lucide-react";
+import { SendHorizontal, Send, Folder } from "lucide-react";
 import { motion } from "framer-motion";
+import Loading from "../loading/Loading";
 
 function Code() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -20,60 +21,179 @@ function Code() {
   const projectID = userStore((state) => state.projectID);
   const projectName = userStore((state) => state.projectName);
   const userPic = userStore((state) => state.userPic);
+  const fileID = userStore((state) => state.fileID);
+  const folderID=userStore((state)=>state.folderID);
 
   const [showFileModal, setShowFileModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
-  const [fileType, setFileType] = useState("javascript");
+  const [fileType, setFileType] = useState("");
   const [parentRepo, setParentRepo] = useState("");
   const [files, setFiles] = useState([]);
   const [isFilesOpen, setIsFilesOpen] = useState(false);
-  const [selectFile,setSelectedFile]=useState(null);
+  const [selectFile, setSelectedFile] = useState(null);
 
-  const getProjectDetails=async () => {
+  const [chatLoading, setChatLoading] = useState(false);
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const [aiResponseImportantCode, setAiResponseImportantCode] = useState("");
+
+  const [showUndoButton, setShowUndoButton] = useState(false);
+  const [originalCode, setOriginalCode] = useState("");
+
+  const getProjectDetails = async () => {
     try {
-      const res=await axios.get(`${import.meta.env.VITE_BASE_URL}/code/get_project_ff`,{
-        params:{projectID:projectID},
-        headers:{
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+      const res = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/code/get_project_ff`,
+        {
+          params: { projectID },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
-      });
-      // console.log("folder name :",);
-      setParentRepo(res.data.data.folderName);
-      setFiles(res.data.data.folder);
-
+      );
+      console.log("files :", res.data.data);
+      console.log("folders :", res.data.folders);
+      // setParentRepo(res.data.data.folderName);
+      // setFiles(res.data.data.folder);
+      setFiles([...res.data.data, ...res.data.folders]);
     } catch (error) {
-      console.log("error:",error.message);  
+      console.log("error:", error.message);
     }
-  }
+  };
+
+  const getFileCode = async () => {
+    try {
+      setEditorLoading(true);
+      const res = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/code/get_file_content`,
+        {
+          params: { fileID },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      // console.log("file content:", res.data.data);
+      setCode(
+        res.data.data.content === " "
+          ? "No content is available"
+          : res.data.data.content
+      );
+      setEditorLoading(false);
+      // .content
+    } catch (error) {
+      console.log("error:", error.message);
+      setEditorLoading(false);
+    }
+  };
+
+  const handleSaveCode = async () => {
+    try {
+      setEditorLoading(true);
+      const res = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/code/update_code`,
+        {
+          fileID: fileID,
+          content: code,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("save code data:", res.data.data);
+      alert("Code saved successfully!");
+      setEditorLoading(false);
+    } catch (error) {
+      console.log("error:", error.message);
+      setEditorLoading(false);
+    }
+  };
+
+  console.log("folderID:",folderID);
+    console.log("fileID:",fileID);
 
   const handleCreateFile = async () => {
-    if (!newFileName || !projectID){
+    if (!newFileName || !projectID) {
       return alert("All fields are required");
     }
-      try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_BASE_URL}/code/create_file`,
-          {
-            fileName: newFileName,
-            content: null,
-            language: fileType,
-            projectID: projectID,
-          },{
-            headers:{
-              Authorization:`Bearer ${localStorage.getItem("token")}`
-            }
-          }
-        );
-        console.log("new file data:",res.data.data);
-        setShowFileModal(false);
-      } catch (error) {
-        console.log("error:",error.message);
-        setShowFileModal(false);
-      }
+    if (newFileName.includes(" ")) {
+      alert(
+        "File name cannot contain spaces. Please use underscores or hyphens instead."
+      );
+      return;
+    }
+    if (!newFileName.endsWith(".js")) {
+      alert("Please add .js extension to your file name");
+      return;
+    }
+    // console.log("file type:",fileType);
+    
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/code/create_file`,
+        {
+          fileName: newFileName,
+          content: " ",
+          language: fileType,
+          projectID: projectID,
+          folderID: folderID || null,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("new file data:", res.data.data);
+      setFiles(res.data.data);
+      // if(files.length<1){
+      // }else{
+
+      //   setFiles((prev) => [...prev, res.data.data]);
+      // }
+      setShowFileModal(false);
+    } catch (error) {
+      console.log("error:", error.message);
+      setShowFileModal(false);
+    }
   };
-  const handleCreateFolder = async () => {};
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName || !projectID) {
+      return alert("All fields are required");
+    }
+    if (newFolderName.includes(" ")) {
+      alert(
+        "Folder name cannot contain spaces. Please use underscores or hyphens instead."
+      );
+      return;
+    }
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/code/create_folder`,
+        {
+          folderName: newFolderName,
+          projectID,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("new folder data:", res.data.data);
+      setFiles((prev) => [...prev, res.data.data]);
+      setShowFolderModal(false);
+    } catch (error) {
+      console.log("error:", error.message);
+      setShowFolderModal(false);
+    }
+  };
 
   const messageHandler = async () => {
     // console.log("Username:", username);
@@ -83,6 +203,7 @@ function Code() {
     // console.log("User Picture:", userPic);
 
     try {
+      setChatLoading(true);
       const res = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/chat/send`,
         {
@@ -102,16 +223,19 @@ function Code() {
       setGetAllMessages((prev) => [...prev, res.data.data]);
       setSendMessage("");
       alert("Message sent successfully!");
+      setChatLoading(false);
 
       console.log("message successully sended");
     } catch (error) {
       console.log("error:", error.message);
+      setChatLoading(false);
     }
   };
   const fetchMessages = async () => {
     try {
       // console.log("userID:",userId==="68381f581c16499b75817325");
       // console.log("projectID:",projectID==="68382af5142923838053ff57");
+      setChatLoading(true);
       const res = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/chat/messages`,
         {
@@ -125,8 +249,10 @@ function Code() {
       // console.log("All messages successully fetched");
       // console.log("fetch messages:", res.data.data);
       setGetAllMessages(res.data.data);
+      setChatLoading(false);
     } catch (error) {
       console.log("error:", error.message);
+      setChatLoading(false);
     }
   };
 
@@ -139,6 +265,7 @@ function Code() {
   // Function to handle code compilation
   const handleRunCode = async () => {
     try {
+      setEditorLoading(true);
       const res = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/code/update`,
         {
@@ -152,8 +279,10 @@ function Code() {
         }
       );
       setOutput(res.data.data);
+      setEditorLoading(false);
       // console.log("Code execution done");
     } catch (error) {
+      setEditorLoading(false);
       setOutput(`Error: ${error.message}`);
     }
   };
@@ -163,12 +292,14 @@ function Code() {
     if (!query) {
       return console.log("error: Search box is empty");
     }
+    // console.log("query:",query);
 
     try {
+      setAiLoading(true);
       const res = await axios.post(
         "https://openrouter.ai/api/v1/chat/completions",
         {
-          model: "mistralai/mistral-7b-instruct", // or "meta-llama/llama-3-8b-instruct"
+          model: "meta-llama/llama-3-70b-instruct", // or "meta-llama/llama-3-8b-instruct"
           messages: [{ role: "user", content: query }],
         },
         {
@@ -188,15 +319,30 @@ function Code() {
         ...prev,
         { question: query, answer: res.data.choices[0]?.message?.content },
       ]);
+      // setAiResponseImportantCode
+      // const str = res.data.choices[0]?.message?.content;
+
+      // const match = str.match(/```([\s\S]*?)```/);
+
+      // if (match) {
+      //   const insideBackticks = match[1].trim();
+      //   // console.log("Extracted content:", insideBackticks);
+      //   setCode(insideBackticks);
+      // }
+      setAiLoading(false);
       setQuery("");
     } catch (error) {
+      setAiLoading(false);
       console.log("error:", error.message);
     }
   };
-
   useEffect(() => {
+    // runDemoString();
     fetchMessages();
     getProjectDetails();
+    if (selectFile) {
+      getFileCode();
+    }
   }, []);
 
   return (
@@ -348,6 +494,7 @@ function Code() {
                 </div>
               </div>
             )}
+            {chatLoading && <Loading loaderType="chat" />}
           </div>
 
           {/* Search Area */}
@@ -404,24 +551,26 @@ function Code() {
                       Files
                     </button>
                     {selectFile && (
-                    <div className="  bg-gray-200 px-5 py-2 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 text-gray-500"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="font-medium text-gray-700">{selectFile.fileName}</span>
+                      <div className="  bg-gray-200 px-5 py-2 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-gray-500"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span className="font-medium text-gray-700">
+                            {selectFile.fileName?selectFile.fileName:selectFile.folderName}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                     <button
                       onClick={() => setShowFileModal(true)}
                       className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
@@ -456,18 +605,23 @@ function Code() {
                     </button>
                   </div>
 
-                 
                   {isFilesOpen && (
-                    <motion.div 
+                    <motion.div
                       initial={{ x: -300 }}
                       animate={{ x: 0 }}
                       exit={{ x: -300 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
                       className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 shadow-lg z-40"
                     >
                       <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="font-semibold text-gray-700">Project Files</h3>
-                        <motion.button 
+                        <h3 className="font-semibold text-gray-700">
+                          Project Files
+                        </h3>
+                        <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => setIsFilesOpen(false)}
@@ -487,68 +641,129 @@ function Code() {
                           </svg>
                         </motion.button>
                       </div>
-                      
+
                       <div className="p-4">
-                        {parentRepo && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="mb-4"
-                          >
-                            <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5 text-gray-500"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                              </svg>
-                              <span className="font-medium text-gray-700">{parentRepo}</span>
-                            </div>
-                          </motion.div>
-                        )}
-                        
                         <div className="space-y-1">
                           {files && files.length > 0 ? (
-                            files.map((file, index) => (
-                              <motion.div
-                                key={index}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                                whileHover={{ scale: 1.02 }}
-                                onClick={() => {
-                                  setSelectedFile(file);
-                                }}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                                  selectFile?.fileName === file.fileName 
-                                    ? 'bg-blue-100 text-blue-700' 
-                                    : 'hover:bg-gray-100 text-gray-700'
-                                }`}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className={`h-4 w-4 ${
-                                    selectFile?.fileName === file.fileName 
-                                      ? 'text-blue-500' 
-                                      : 'text-gray-500'
+                            files.map((file, index) => {
+                              // console.log("file:",file);
+                              if(file.folderID!==null && file.fileID){
+                                console.log("folder and file id ")
+                                return <motion.div
+                                  key={index}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.1 }}
+                                  whileHover={{ scale: 1.02 }}
+                                  onClick={() => {
+                                    if (!file.folderID) {
+                                      userStore.getState().setFolderID(file.folderID);
+                                      return setSelectedFile(file);
+                                    } else {
+                                      userStore.getState().setFileID(file._id);
+                                      setSelectedFile(file);
+                                    }
+                                  }}
+                                  className={`flex items-center gap-2 px-2 py-1   rounded-lg cursor-pointer transition-colors ${
+                                    selectFile?.fileName === file.fileName
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "hover:bg-gray-100 text-gray-700"
                                   }`}
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
                                 >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                <span className="text-sm">{file.fileName}</span>
-                              </motion.div>
-                            ))
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className={`h-3 w-3 ${
+                                      selectFile?.fileName === file.fileName
+                                        ? "text-blue-500"
+                                        : "text-gray-500"
+                                    }`}
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  <span className="text-xs">
+                                    {file.fileName}
+                                  </span>
+                                </motion.div>
+                              }
+                              if (file.folderID !== null) {
+                                return (
+                                  <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    whileHover={{ scale: 1.02 }}
+                                    onClick={() => {
+                                      // console.log("file data:",file);
+
+                                      userStore
+                                        .getState()
+                                        .setFolderID(file._id);
+                                      return setSelectedFile(file);
+                                    }}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                      selectFile?.folderName === file.folderName
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "hover:bg-gray-100 text-gray-700"
+                                    }`}
+                                  >
+                                    <span className="text-sm flex gap-1 items-center">
+                                      <Folder />
+                                      {file.folderName}
+                                    </span>
+                                  </motion.div>
+                                );
+                              }
+                              return (
+                                <motion.div
+                                  key={index}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.1 }}
+                                  whileHover={{ scale: 1.02 }}
+                                  onClick={() => {
+                                    // console.log("file data:",file._id);
+                                 
+                                      userStore.getState().setFileID(file._id);
+                                      setSelectedFile(file);
+                                    
+                                  }}
+                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                    selectFile?.fileName === file.fileName
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "hover:bg-gray-100 text-gray-700"
+                                  }`}
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className={`h-4 w-4 ${
+                                      selectFile?.fileName === file.fileName
+                                        ? "text-blue-500"
+                                        : "text-gray-500"
+                                    }`}
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  <span className="text-sm">
+                                    {file.fileName}
+                                  </span>
+                                </motion.div>
+                              );
+                            })
                           ) : (
-                            <motion.p 
+                            <motion.p
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ delay: 0.3 }}
@@ -561,7 +776,6 @@ function Code() {
                       </div>
                     </motion.div>
                   )}
-                  
 
                   {/* File Creation Modal */}
                   {showFileModal && (
@@ -580,9 +794,11 @@ function Code() {
                           />
                           <select
                             className="w-full px-3 py-2 border rounded-lg mb-4"
+                            value={fileType}
                             onChange={(e) => setFileType(e.target.value)}
                           >
-                            <option value="js">JavaScript</option>
+                            <option value="">Select file type</option>
+                            <option value="javascript">JavaScript</option>
                             <option value="html">HTML</option>
                             <option value="css">CSS</option>
                             <option value="py">Python</option>
@@ -637,24 +853,44 @@ function Code() {
                       </div>
                     </div>
                   )}
-                  <button
-                    onClick={handleRunCode}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
+                  <div className="flex justify-center items-center">
+                    <button
+                      onClick={handleSaveCode}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex cursor-pointer items-center gap-2 mr-2"
                     >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    Run Code
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Save Code
+                    </button>
+                    <button
+                      onClick={handleRunCode}
+                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Run Code
+                    </button>
+                  </div>
                 </div>
                 <div className="flex flex-1">
                   {/* Line Numbers */}
@@ -674,6 +910,8 @@ function Code() {
 
             {/* Output Area */}
             <div className="w-1/2 p-4">
+              {/* {editorLoading && <Loading loaderType={"editor" } loadingStyle={`w-full h-full overflow-hidden`} />} */}
+
               <h3 className="font-semibold mb-2">Output</h3>
               <div className="bg-white p-4 rounded-lg h-[calc(100%-40px)] overflow-y-auto font-mono text-sm">
                 <pre>
@@ -689,6 +927,83 @@ function Code() {
               isAIChatOpen ? "h-1/3" : "h-12"
             } transition-all duration-300 border-t border-gray-200 p-4 bg-gray-50 relative`}
           >
+            <div
+              className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize bg-gray-200 hover:bg-blue-500 transition-colors"
+              onMouseDown={(e) => {
+                const startY = e.clientY;
+                const startHeight = e.target.parentElement.offsetHeight;
+                const container = e.target.parentElement;
+
+                const handleMouseMove = (moveEvent) => {
+                  const deltaY = moveEvent.clientY - startY;
+                  const newHeight = Math.max(48, startHeight + deltaY);
+                  container.style.height = `${newHeight}px`;
+
+                  // Smooth animation
+                  container.style.transition = "none";
+                  requestAnimationFrame(() => {
+                    container.style.transition = "height 0.1s ease-out";
+                  });
+                };
+
+                const handleMouseUp = () => {
+                  document.removeEventListener("mousemove", handleMouseMove);
+                  document.removeEventListener("mouseup", handleMouseUp);
+                };
+
+                document.addEventListener("mousemove", handleMouseMove);
+                document.addEventListener("mouseup", handleMouseUp);
+              }}
+            />
+            <div className="absolute top-0 right-4 flex gap-2">
+              <button
+                onClick={() => {
+                  const container =
+                    document.querySelector(".ai-chat-container");
+                  const currentHeight = container.offsetHeight;
+                  container.style.height = `${currentHeight + 50}px`;
+                }}
+                className="p-1 bg-gray-200 hover:bg-blue-500 rounded-full transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => {
+                  const container =
+                    document.querySelector(".ai-chat-container");
+                  const currentHeight = container.offsetHeight;
+                  container.style.height = `${Math.max(
+                    48,
+                    currentHeight - 50
+                  )}px`;
+                }}
+                className="p-1 bg-gray-200 hover:bg-blue-500 rounded-full transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
             {/* AI Chat Toggle Button */}
             <button
               onClick={() => setIsAIChatOpen(!isAIChatOpen)}
@@ -702,7 +1017,7 @@ function Code() {
                 <h3 className="font-semibold mb-2">AI Assistant</h3>
                 <div className="flex-1 bg-white rounded-lg p-4 mb-2 overflow-y-auto">
                   {/* Chat messages would go here */}
-                  {aiResponse && aiResponse.length > 0 && (
+                  {/* {aiResponse && aiResponse.length > 0 && (
                     <div className={`space-y-4 `}>
                       {aiResponse.map((response, index) => (
                         <div key={index} className={`flex items-start gap-3 `}>
@@ -730,16 +1045,119 @@ function Code() {
                         </div>
                       ))}
                     </div>
+                  )} */}
+                  {aiResponse && aiResponse.length > 0 && (
+                    <div className="space-y-6">
+                      {aiResponse.map((response, index) => (
+                        <div key={index} className="flex items-start gap-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-md">
+                              <span className="text-white font-bold">AI</span>
+                            </div>
+                          </div>
+
+                          <div
+                            className="flex-1 bg-white border border-blue-200 rounded-xl p-4 shadow-sm"
+                            ref={(el) =>
+                              el && el.scrollIntoView({ behavior: "smooth" })
+                            }
+                          >
+                            <p className="text-blue-800 font-semibold mb-2 text-lg">
+                              {response.question}
+                            </p>
+
+                            <div className="text-gray-800 whitespace-pre-line leading-relaxed space-y-4">
+                              {response.answer
+                                ?.split(/```([\s\S]*?)```/g)
+                                .map((part, i) =>
+                                  i % 2 === 1 ? (
+                                    <pre
+                                      key={i}
+                                      className="bg-gray-900 text-green-200 p-4 rounded-md overflow-x-auto text-sm font-mono"
+                                    >
+                                      {part.trim()}
+                                    </pre>
+                                  ) : (
+                                    <p key={i}>{part.trim()}</p>
+                                  )
+                                )}
+                              {!response.answer && (
+                                <p className="text-gray-500 italic">
+                                  No response generated yet. Please ask a
+                                  question to get started.
+                                </p>
+                              )}
+                              {response.answer?.includes("```") && (
+                                <div className="flex gap-2 mt-4">
+                                  <button
+                                    onClick={() => {
+                                      const codeBlock =
+                                        response.answer.match(
+                                          /```([\s\S]*?)```/
+                                        )?.[1];
+                                      if (codeBlock) {
+                                        // Store the original code before modification
+                                        const originalCode = code;
+                                        setCode(codeBlock.trim());
+                                        // Add undo button after code is modified
+                                        setShowUndoButton(true);
+                                        setOriginalCode(originalCode);
+                                      }
+                                    }}
+                                    className="px-4 py-2 bg-green-500 cursor-pointer text-white rounded-lg hover:bg-green-600 transition-colors"
+                                  >
+                                    Add AI response to your code
+                                  </button>
+                                  {showUndoButton && (
+                                    <button
+                                      onClick={() => {
+                                        setCode(originalCode);
+                                        setShowUndoButton(false);
+                                      }}
+                                      className="px-4 py-2 bg-red-500 cursor-pointer text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    >
+                                      Undo Changes
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {aiLoading && (
+                    <Loading
+                      loaderType={"ai"}
+                      loadingStyle={`w-full h-full `}
+                    />
                   )}
                 </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.toLowerCase();
+
+                      // if (value.includes('sudo/')) {
+                      //   setQuery(prev => prev.includes('sudo/') ? `"${code}"` : prev);
+                      //   return;
+                      // }
+                      if (value.includes("sudo/")) {
+                        const replaced = value.replace(/sudo\//g, code); // replace all occurrences
+                        setQuery(replaced);
+                        return;
+                      }
+
+                      return setQuery(e.target.value);
+                    }}
                     placeholder="Ask AI assistant..."
                     className="flex-1 text-xl px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+
                   <button
                     onClick={sendPropmt}
                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"

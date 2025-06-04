@@ -5,11 +5,15 @@ const userStore = create((set,get) => ({
   userId: "",
   projectID:"",
   projectName:"",
+  userPic:"",
+  fileID:"",
+  folderID:"",
+  setFolderID: (folderID) => set({ folderID }),
+  setFileID:(fileID)=>set({fileID}),
   setUsername: (username) => set({ username }),
   setUserId: (userId) => set({ userId }),
   setProjectId: (projectID) => set({ projectID }),
   setProjectName: (projectName) => set({ projectName }),
-  userPic:"",
   setUserPic:(userPic)=>set({userPic})
 }));
 
