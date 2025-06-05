@@ -3,7 +3,7 @@ import Nav from "../nav/Nav";
 import axios from "axios";
 import userStore from "../context/store";
 import { SendHorizontal, Send, Folder } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Loading from "../loading/Loading";
 
 function Code() {
@@ -14,6 +14,7 @@ function Code() {
   const [sendMessage, setSendMessage] = useState("");
   const [getAllMessages, setGetAllMessages] = useState([]);
   const [query, setQuery] = useState("");
+  const [userQuery, setUserQuery] = useState("");
   const [aiResponse, setAiResponse] = useState([{ question: "", answer: "" }]);
 
   const username = userStore((state) => state.username);
@@ -22,7 +23,7 @@ function Code() {
   const projectName = userStore((state) => state.projectName);
   const userPic = userStore((state) => state.userPic);
   const fileID = userStore((state) => state.fileID);
-  const folderID=userStore((state)=>state.folderID);
+  const folderID = userStore((state) => state.folderID);
 
   const [showFileModal, setShowFileModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -30,7 +31,6 @@ function Code() {
   const [newFolderName, setNewFolderName] = useState("");
   const [fileType, setFileType] = useState("");
   const [parentRepo, setParentRepo] = useState("");
-  const [files, setFiles] = useState([]);
   const [isFilesOpen, setIsFilesOpen] = useState(false);
   const [selectFile, setSelectedFile] = useState(null);
 
@@ -43,10 +43,19 @@ function Code() {
   const [showUndoButton, setShowUndoButton] = useState(false);
   const [originalCode, setOriginalCode] = useState("");
 
+  const [expandedFolders, setExpandedFolders] = useState([]);
+
+  const [files, setFiles] = useState([]);
+  const [folders, setFolders] = useState([]);
+  const [folderChilds, setFolderChilds] = useState([]);
+
+  const [selectedText, setSelectedText] = useState("");
+  const [hasScrolled, setHasScrolled] = useState(false);
+
   const getProjectDetails = async () => {
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/code/get_project_ff`,
+        `${import.meta.env.VITE_BASE_URL}/code/get_project_files`,
         {
           params: { projectID },
           headers: {
@@ -54,11 +63,24 @@ function Code() {
           },
         }
       );
-      console.log("files :", res.data.data);
-      console.log("folders :", res.data.folders);
+      const foldersWithFilse = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/code/get_project_folders`,
+        {
+          params: { projectID },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      // console.log("root files :", res.data.data);
+      // console.log("root folders :", foldersWithFilse.data.folders);
+      // console.log("child files : ",foldersWithFilse.data.folderFiles);
       // setParentRepo(res.data.data.folderName);
       // setFiles(res.data.data.folder);
-      setFiles([...res.data.data, ...res.data.folders]);
+      setFiles(res.data.data);
+      setFolders(foldersWithFilse.data.folders);
+      setFolderChilds(foldersWithFilse.data.folderFiles);
     } catch (error) {
       console.log("error:", error.message);
     }
@@ -76,7 +98,7 @@ function Code() {
           },
         }
       );
-      // console.log("file content:", res.data.data);
+      // console.log("file content:", selectFile.content);
       setCode(
         res.data.data.content === " "
           ? "No content is available"
@@ -89,6 +111,10 @@ function Code() {
       setEditorLoading(false);
     }
   };
+
+  useEffect(() => {
+    getFileCode();
+  }, [selectFile]);
 
   const handleSaveCode = async () => {
     try {
@@ -114,8 +140,8 @@ function Code() {
     }
   };
 
-  console.log("folderID:",folderID);
-    console.log("fileID:",fileID);
+  // console.log("folderID:",folderID);
+  //   console.log("fileID:",fileID);
 
   const handleCreateFile = async () => {
     if (!newFileName || !projectID) {
@@ -132,7 +158,7 @@ function Code() {
       return;
     }
     // console.log("file type:",fileType);
-    
+
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/code/create_file`,
@@ -186,7 +212,7 @@ function Code() {
           },
         }
       );
-      console.log("new folder data:", res.data.data);
+      // console.log("new folder data:", res.data.data);
       setFiles((prev) => [...prev, res.data.data]);
       setShowFolderModal(false);
     } catch (error) {
@@ -292,7 +318,7 @@ function Code() {
     if (!query) {
       return console.log("error: Search box is empty");
     }
-    // console.log("query:",query);
+    // console.log("ai query:",query);
 
     try {
       setAiLoading(true);
@@ -319,30 +345,19 @@ function Code() {
         ...prev,
         { question: query, answer: res.data.choices[0]?.message?.content },
       ]);
-      // setAiResponseImportantCode
-      // const str = res.data.choices[0]?.message?.content;
 
-      // const match = str.match(/```([\s\S]*?)```/);
-
-      // if (match) {
-      //   const insideBackticks = match[1].trim();
-      //   // console.log("Extracted content:", insideBackticks);
-      //   setCode(insideBackticks);
-      // }
       setAiLoading(false);
       setQuery("");
+      setUserQuery("");
     } catch (error) {
       setAiLoading(false);
+
       console.log("error:", error.message);
     }
   };
   useEffect(() => {
-    // runDemoString();
     fetchMessages();
     getProjectDetails();
-    if (selectFile) {
-      getFileCode();
-    }
   }, []);
 
   return (
@@ -566,7 +581,9 @@ function Code() {
                             />
                           </svg>
                           <span className="font-medium text-gray-700">
-                            {selectFile.fileName?selectFile.fileName:selectFile.folderName}
+                            {selectFile.fileName
+                              ? selectFile.fileName
+                              : selectFile.folderName}
                           </span>
                         </div>
                       </div>
@@ -645,54 +662,13 @@ function Code() {
                       <div className="p-4">
                         <div className="space-y-1">
                           {files && files.length > 0 ? (
-                            files.map((file, index) => {
-                              // console.log("file:",file);
-                              if(file.folderID!==null && file.fileID){
-                                console.log("folder and file id ")
-                                return <motion.div
-                                  key={index}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.1 }}
-                                  whileHover={{ scale: 1.02 }}
-                                  onClick={() => {
-                                    if (!file.folderID) {
-                                      userStore.getState().setFolderID(file.folderID);
-                                      return setSelectedFile(file);
-                                    } else {
-                                      userStore.getState().setFileID(file._id);
-                                      setSelectedFile(file);
-                                    }
-                                  }}
-                                  className={`flex items-center gap-2 px-2 py-1   rounded-lg cursor-pointer transition-colors ${
-                                    selectFile?.fileName === file.fileName
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "hover:bg-gray-100 text-gray-700"
-                                  }`}
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className={`h-3 w-3 ${
-                                      selectFile?.fileName === file.fileName
-                                        ? "text-blue-500"
-                                        : "text-gray-500"
-                                    }`}
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                  <span className="text-xs">
-                                    {file.fileName}
-                                  </span>
-                                </motion.div>
-                              }
-                              if (file.folderID !== null) {
-                                return (
+                            <>
+                              {/* Root Files */}
+                              <div className="mb-4">
+                                <h4 className="text-sm font-medium text-gray-500 mb-2">
+                                  Root Files
+                                </h4>
+                                {files.map((file, index) => (
                                   <motion.div
                                     key={index}
                                     initial={{ opacity: 0, x: -20 }}
@@ -700,68 +676,164 @@ function Code() {
                                     transition={{ delay: index * 0.1 }}
                                     whileHover={{ scale: 1.02 }}
                                     onClick={() => {
-                                      // console.log("file data:",file);
-
-                                      userStore
-                                        .getState()
-                                        .setFolderID(file._id);
+                                      userStore.getState().setFolderID("");
+                                      userStore.getState().setFileID(file._id);
                                       return setSelectedFile(file);
                                     }}
                                     className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                                      selectFile?.folderName === file.folderName
+                                      selectFile?.fileName === file.fileName
                                         ? "bg-blue-100 text-blue-700"
                                         : "hover:bg-gray-100 text-gray-700"
                                     }`}
                                   >
-                                    <span className="text-sm flex gap-1 items-center">
-                                      <Folder />
-                                      {file.folderName}
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className={`h-4 w-4 ${
+                                        selectFile?.fileName === file.fileName
+                                          ? "text-blue-500"
+                                          : "text-gray-500"
+                                      }`}
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                    <span className="text-md">
+                                      {file.fileName}
                                     </span>
                                   </motion.div>
-                                );
-                              }
-                              return (
-                                <motion.div
-                                  key={index}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.1 }}
-                                  whileHover={{ scale: 1.02 }}
-                                  onClick={() => {
-                                    // console.log("file data:",file._id);
-                                 
+                                ))}
+                              </div>
+
+                              {/* Folders */}
+                              <div className="mb-4">
+                                <h4 className="text-sm font-medium text-gray-500 mb-2">
+                                  Folders
+                                </h4>
+                                {folders.map((folder, index) => (
+                                  <>
+                                    <motion.div
+                                      key={folder._id}
+                                      initial={{ opacity: 0, x: -20 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: index * 0.1 }}
+                                      whileHover={{ scale: 1.02 }}
+                                      onClick={() => {
+                                        userStore
+                                          .getState()
+                                          .setFolderID(folder._id);
+                                        userStore.getState().setFileID("");
+                                        setSelectedFile(null);
+                                      }}
+                                      className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                        userStore.getState().folderID ===
+                                        folder._id
+                                          ? "bg-green-100 text-green-700"
+                                          : "hover:bg-gray-100 text-gray-700"
+                                      }`}
+                                    >
+                                      <Folder className="h-4 w-4 text-gray-500" />
+                                      <span className="text-md">
+                                        {folder.folderName}
+                                      </span>
+                                    </motion.div>
+                                    {folderChilds.map((el, k) => {
+                                      return (
+                                        el.folderID === folder._id && (
+                                          <motion.div
+                                            key={el._id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: k * 0.1 }}
+                                            whileHover={{ scale: 1.02 }}
+                                            onClick={() => {
+                                              userStore
+                                                .getState()
+                                                .setFileID(el._id);
+                                              setSelectedFile(el);
+                                            }}
+                                            className={`flex items-center gap-2 px-3 py-2 ml-4 rounded-lg cursor-pointer transition-colors ${
+                                              selectFile?.fileName ===
+                                              el.fileName
+                                                ? "bg-blue-100 text-blue-700"
+                                                : "hover:bg-gray-100 text-gray-700"
+                                            }`}
+                                          >
+                                            <svg
+                                              xmlns="http://www.w3.org/2000/svg"
+                                              className={`h-4 w-4 ${
+                                                selectFile?.fileName ===
+                                                el.fileName
+                                                  ? "text-blue-500"
+                                                  : "text-gray-500"
+                                              }`}
+                                              viewBox="0 0 20 20"
+                                              fill="currentColor"
+                                            >
+                                              <path
+                                                fillRule="evenodd"
+                                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                                clipRule="evenodd"
+                                              />
+                                            </svg>
+                                            <span className="text-md">
+                                              {el.fileName}
+                                            </span>
+                                          </motion.div>
+                                        )
+                                      );
+                                    })}
+                                  </>
+                                ))}
+                              </div>
+
+                              {/* Folder Files */}
+                              {/* <div>
+                                <h4 className="text-sm font-medium text-gray-500 mb-2">Folder Files</h4>
+                                {folderChilds.map((file, index) => (
+                                  <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    whileHover={{ scale: 1.02 }}
+                                    onClick={() => {
                                       userStore.getState().setFileID(file._id);
                                       setSelectedFile(file);
-                                    
-                                  }}
-                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                                    selectFile?.fileName === file.fileName
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "hover:bg-gray-100 text-gray-700"
-                                  }`}
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className={`h-4 w-4 ${
+                                    }}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                                       selectFile?.fileName === file.fileName
-                                        ? "text-blue-500"
-                                        : "text-gray-500"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "hover:bg-gray-100 text-gray-700"
                                     }`}
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
                                   >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                  <span className="text-sm">
-                                    {file.fileName}
-                                  </span>
-                                </motion.div>
-                              );
-                            })
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className={`h-4 w-4 ${
+                                        selectFile?.fileName === file.fileName
+                                          ? "text-blue-500"
+                                          : "text-gray-500"
+                                      }`}
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                    <span className="text-md">
+                                      {file.fileName}
+                                    </span>
+                                  </motion.div>
+                                ))}
+                              </div> */}
+                            </>
                           ) : (
                             <motion.p
                               initial={{ opacity: 0 }}
@@ -900,10 +972,96 @@ function Code() {
                   {/* Code Editor */}
                   <textarea
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
+                    onChange={(e) => {
+                      setCode(e.target.value);
+                      setSelectedText(""); // Clear selected text when user types
+                    }}
+                    onSelect={(e) => {
+                      const value = e.target.value;
+                      const selectionStart = e.target.selectionStart;
+                      const selectionEnd = e.target.selectionEnd;
+
+                      if (selectionStart !== selectionEnd) {
+                        const codeSelectedText = value.substring(
+                          selectionStart,
+                          selectionEnd
+                        );
+                        setSelectedText(codeSelectedText);
+                      }
+                    }}
                     className="flex-1 p-4 font-mono text-sm bg-gray-50 rounded-lg focus:outline-none resize-none"
                     placeholder="Write your code here..."
                   />
+
+                  {selectedText && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="fixed bottom-1/2 right-1/2 translate-x-1/2 translate-y-1/2 z-50 bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-2xl border border-gray-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={userQuery}
+                            onChange={(e) => {
+                              const input = e.target.value;
+                              setUserQuery(input);
+
+                              // Build query based on selectedText once, if query is not already set
+                              if (!query && selectedText) {
+                                setQuery(`${selectedText} ${input}`);
+                              } else {
+                                setQuery(`${selectedText} ${input}`);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && query.trim()) {
+                                sendPropmt(); // Ensure this function exists
+                              }
+                            }}
+                            className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400"
+                            placeholder="Ask AI about this code..."
+                          />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            if (query) {
+                              sendPropmt();
+                            }
+                          }}
+                          className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg flex items-center justify-center"
+                        >
+                          <Send className="h-5 w-5" />
+                        </motion.button>
+                      </div>
+                      <p className="text-md text-gray-500 mt-2 text-center">
+                        What you want to change in that
+                      </p>
+
+                      {aiResponse.length>0 && (
+                        <h2 className="text-red-500 text-center">
+                          Please check your ai section.
+                        </h2>
+                      )}
+                    </motion.div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1016,36 +1174,6 @@ function Code() {
               <div className="flex flex-col h-full pt-4">
                 <h3 className="font-semibold mb-2">AI Assistant</h3>
                 <div className="flex-1 bg-white rounded-lg p-4 mb-2 overflow-y-auto">
-                  {/* Chat messages would go here */}
-                  {/* {aiResponse && aiResponse.length > 0 && (
-                    <div className={`space-y-4 `}>
-                      {aiResponse.map((response, index) => (
-                        <div key={index} className={`flex items-start gap-3 `}>
-                          <div className="flex-shrink-0">
-                            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                              <span className="text-white font-bold">AI</span>
-                            </div>
-                          </div>
-                          <div
-                            className="flex-1 bg-blue-50 rounded-lg p-3 shadow-sm"
-                            ref={(el) => {
-                              if (el) {
-                                el.scrollIntoView({ behavior: "smooth" });
-                              }
-                            }}
-                          >
-                            <p className="text-blue-800 font-medium mb-2">
-                              {response.question}
-                            </p>
-                            <p className="text-gray-700">
-                              {response.answer ||
-                                "How can I help you with your project today? I can assist with coding, debugging, or provide guidance on best practices."}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )} */}
                   {aiResponse && aiResponse.length > 0 && (
                     <div className="space-y-6">
                       {aiResponse.map((response, index) => (
@@ -1058,9 +1186,12 @@ function Code() {
 
                           <div
                             className="flex-1 bg-white border border-blue-200 rounded-xl p-4 shadow-sm"
-                            ref={(el) =>
-                              el && el.scrollIntoView({ behavior: "smooth" })
-                            }
+                            ref={(el) => {
+                              if (el && !hasScrolled) {
+                                el.scrollIntoView({ behavior: "smooth" });
+                                setHasScrolled(true);
+                              }
+                            }}
                           >
                             <p className="text-blue-800 font-semibold mb-2 text-lg">
                               {response.question}
@@ -1083,8 +1214,8 @@ function Code() {
                                 )}
                               {!response.answer && (
                                 <p className="text-gray-500 italic">
-                                  No response generated yet. Please ask a
-                                  question to get started.
+                                  use " sudo/ " and paste all your code for
+                                  change.
                                 </p>
                               )}
                               {response.answer?.includes("```") && (
@@ -1098,8 +1229,17 @@ function Code() {
                                       if (codeBlock) {
                                         // Store the original code before modification
                                         const originalCode = code;
-                                        setCode(codeBlock.trim());
-                                        // Add undo button after code is modified
+                                        if (selectedText) {
+                                          // Replace selected text with AI code
+                                          const newCode = code.replace(
+                                            selectedText,
+                                            codeBlock.trim()
+                                          );
+                                          setCode(newCode);
+                                        } else {
+                                          // Replace entire code if no selection
+                                          setCode(codeBlock.trim());
+                                        }
                                         setShowUndoButton(true);
                                         setOriginalCode(originalCode);
                                       }
@@ -1138,14 +1278,20 @@ function Code() {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={query}
+                    value={userQuery}
                     onChange={(e) => {
+                      const input = e.target.value;
+                      setUserQuery(input);
+
+                      // Build query based on selectedText once, if query is not already set
+                      if (!query && selectedText) {
+                        setQuery(`${selectedText} ${input}`);
+                      } else {
+                        setQuery(`${selectedText} ${input}`);
+                      }
+
                       const value = e.target.value.toLowerCase();
 
-                      // if (value.includes('sudo/')) {
-                      //   setQuery(prev => prev.includes('sudo/') ? `"${code}"` : prev);
-                      //   return;
-                      // }
                       if (value.includes("sudo/")) {
                         const replaced = value.replace(/sudo\//g, code); // replace all occurrences
                         setQuery(replaced);
@@ -1153,6 +1299,11 @@ function Code() {
                       }
 
                       return setQuery(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && query.trim()) {
+                        sendPropmt(); // Ensure this function exists
+                      }
                     }}
                     placeholder="Ask AI assistant..."
                     className="flex-1 text-xl px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
