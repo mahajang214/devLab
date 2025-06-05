@@ -5,6 +5,7 @@ import userStore from "../context/store";
 import { SendHorizontal, Send, Folder } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Loading from "../loading/Loading";
+import { Editor } from "@monaco-editor/react/dist";
 
 function Code() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -75,7 +76,7 @@ function Code() {
 
       // console.log("root files :", res.data.data);
       // console.log("root folders :", foldersWithFilse.data.folders);
-      // console.log("child files : ",foldersWithFilse.data.folderFiles);
+      // console.log("child files : ",foldersWithFilSe.data.folderFiles);
       // setParentRepo(res.data.data.folderName);
       // setFiles(res.data.data.folder);
       setFiles(res.data.data);
@@ -153,8 +154,36 @@ function Code() {
       );
       return;
     }
-    if (!newFileName.endsWith(".js")) {
-      alert("Please add .js extension to your file name");
+    const fileExtensions = {
+      python: ".py",
+      javascript: ".js",
+      c: ".c",
+      cpp: ".cpp",
+      java: ".java",
+      go: ".go",
+      ruby: ".rb",
+      rust: ".rs",
+    };
+    const isFileNameExists =
+      files.some((file) => file.fileName === newFileName) ||
+      files.some((folder) => folder.folderName === newFileName) ||
+      files.some(
+        (folder) =>
+          folder.folderChilds &&
+          folder.folderChilds.some(
+            (child) =>
+              child.fileName === newFileName || child.folderName === newFileName
+          )
+      );
+
+    if (isFileNameExists) {
+      alert("A file or folder with this name already exists");
+      return;
+    }
+
+    const requiredExtension = fileExtensions[fileType];
+    if (!newFileName.endsWith(requiredExtension)) {
+      alert(`Please add ${requiredExtension} extension to your file name`);
       return;
     }
     // console.log("file type:",fileType);
@@ -175,13 +204,8 @@ function Code() {
           },
         }
       );
-      console.log("new file data:", res.data.data);
-      setFiles(res.data.data);
-      // if(files.length<1){
-      // }else{
-
-      //   setFiles((prev) => [...prev, res.data.data]);
-      // }
+      // console.log("new file data:", res.data.data);
+      setFiles((prev) => [...prev, res.data.data]);
       setShowFileModal(false);
     } catch (error) {
       console.log("error:", error.message);
@@ -193,10 +217,17 @@ function Code() {
     if (!newFolderName || !projectID) {
       return alert("All fields are required");
     }
-    if (newFolderName.includes(" ")) {
-      alert(
-        "Folder name cannot contain spaces. Please use underscores or hyphens instead."
-      );
+    const isFolderNameExists = files.some(
+      (folder) =>
+        folder.folderName === newFolderName ||
+        (folder.folderChilds &&
+          folder.folderChilds.some(
+            (child) => child.folderName === newFolderName
+          ))
+    );
+
+    if (isFolderNameExists) {
+      alert("A folder with this name already exists");
       return;
     }
     try {
@@ -293,18 +324,43 @@ function Code() {
     try {
       setEditorLoading(true);
       const res = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/code/update`,
+        "https://emkc.org/api/v2/piston/execute",
         {
-          code: code,
-          language: "javascript",
+          files: [
+            {
+              name: `${selectFile.fileName}`,
+              content: code,
+            },
+          ],
+          language: `${selectFile.language}`,
+          version:
+            selectFile.language === "javascript"
+              ? "16.3.0"
+              : selectFile.language === "java"
+              ? "15.0.2"
+              : selectFile.language === "c"
+              ? "10.2.0"
+              : selectFile.language === "cpp"
+              ? "10.2.0"
+              : selectFile.language === "go"
+              ? "1.15.5"
+              : selectFile.language === "ruby"
+              ? "3.0.0"
+              : selectFile.language === "rust"
+              ? "1.49.0"
+              : "3.10.0",
         },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
           },
         }
       );
-      setOutput(res.data.data);
+      // console.log("code output :",res.data.run.stdout);
+      // console.log("code output error :",res.data.run.stderr);
+      if (res.data.run.stdout) setOutput(res.data.run.stdout);
+      else if (res.data.run.stderr) setOutput(res.data.run.stderr);
+      // setOutput(res.data.data);
       setEditorLoading(false);
       // console.log("Code execution done");
     } catch (error) {
@@ -363,17 +419,17 @@ function Code() {
   return (
     <>
       <Nav />
-      <div className="flex h-[calc(100vh-64px)]">
+      <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#1E1E1E]">
         {/* Left Sidebar - 20% width */}
         <div
           className={`${
             isSidebarOpen ? "w-1/5" : "w-0"
-          } transition-all duration-300 bg-gray-100 border-r border-gray-200 flex flex-col overflow-x-visible relative`}
+          } transition-all duration-300 bg-[#23272E] border-r border-[#333] flex flex-col overflow-x-visible relative`}
         >
           {/* Toggle Button - Vertically Centered */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="absolute -right-4 top-1/2 transform -translate-y-1/2 z-10 bg-blue-500 hover:bg-blue-600 p-2 rounded-full cursor-pointer transition-colors duration-200 shadow-md"
+            className="absolute -right-4 top-1/2 transform -translate-y-1/2 z-10 bg-[#2D3748] hover:bg-[#4A5568] p-2 rounded-full cursor-pointer transition-colors duration-200 shadow-md"
           >
             {isSidebarOpen ? (
               <svg
@@ -405,9 +461,11 @@ function Code() {
           </button>
 
           {/* Chat List */}
-          <div className="flex-1 overflow-hidden py-10 px-3  mb-1 ">
+          <div className="flex-1 overflow-hidden py-10 px-3 mb-1">
             {isSidebarOpen && (
-              <h3 className="font-semibold mb-4">{projectName} Chats</h3>
+              <h3 className="font-semibold mb-4 text-[#e0e0e0]">
+                {projectName} Chats
+              </h3>
             )}
             {/* Chat list items would go here */}
 
@@ -513,7 +571,7 @@ function Code() {
           </div>
 
           {/* Search Area */}
-          <div className="p-4 border-t border-gray-200 bg-gray-200 rounded-t-2xl  flex">
+          <div className="p-4 border-t border-[#333] bg-[#23272E] rounded-t-2xl flex">
             {isSidebarOpen && (
               <>
                 <input
@@ -521,11 +579,11 @@ function Code() {
                   value={sendMessage}
                   placeholder="Hey there type something..."
                   onChange={(e) => setSendMessage(e.target.value)}
-                  className="w-full px-3 py-2 mr-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 mr-2 rounded-lg border border-[#444] bg-[#1E1E1E] text-[#e0e0e0] focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={messageHandler}
-                  className="py-2 px-3 text-white  bg-green-400 rounded-lg cursor-pointer hover:bg-green-500 transition-all"
+                  className="py-2 px-3 text-white bg-green-600 rounded-lg cursor-pointer hover:bg-green-700 transition-all"
                 >
                   <Send />
                 </button>
@@ -538,12 +596,12 @@ function Code() {
         <div
           className={`${
             isSidebarOpen ? "w-4/5" : "w-full"
-          } transition-all duration-300 flex flex-col`}
+          } transition-all duration-300 flex flex-col bg-[#1E1E1E]`}
         >
           {/* Top Section - Editor and Output */}
-          <div className="flex-1 flex ">
+          <div className="flex-1 flex">
             {/* Code Editor */}
-            <div className="w-1/2 p-4 border-r border-gray-200">
+            <div className="w-1/2 p-4 border-r border-[#333]">
               <div className="flex flex-col h-full">
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-2">
@@ -590,7 +648,7 @@ function Code() {
                     )}
                     <button
                       onClick={() => setShowFileModal(true)}
-                      className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                      className="px-3 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center gap-2"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -608,7 +666,7 @@ function Code() {
                     </button>
                     <button
                       onClick={() => setShowFolderModal(true)}
-                      className="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2"
+                      className="px-3 py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors flex items-center gap-2"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -621,7 +679,6 @@ function Code() {
                       New Folder
                     </button>
                   </div>
-
                   {isFilesOpen && (
                     <motion.div
                       initial={{ x: -300 }}
@@ -659,7 +716,7 @@ function Code() {
                         </motion.button>
                       </div>
 
-                      <div className="p-4">
+                      <div className="p-4 ">
                         <div className="space-y-1">
                           {files && files.length > 0 ? (
                             <>
@@ -870,10 +927,16 @@ function Code() {
                             onChange={(e) => setFileType(e.target.value)}
                           >
                             <option value="">Select file type</option>
-                            <option value="javascript">JavaScript</option>
-                            <option value="html">HTML</option>
-                            <option value="css">CSS</option>
-                            <option value="py">Python</option>
+                            <option value="javascript">
+                              JavaScript (v16.3.0)
+                            </option>
+                            <option value="python">Python (v3.10.0)</option>
+                            <option value="c">C (v10.2.0)</option>
+                            <option value="cpp">C++ (v10.2.0)</option>
+                            <option value="java">Java (v15.0.2)</option>
+                            <option value="go">Go (v1.15.5)</option>
+                            <option value="ruby">Ruby (v3.0.0)</option>
+                            <option value="rust">Rust (v1.49.0)</option>
                           </select>
                         </div>
                         <div className="flex justify-end gap-2">
@@ -925,7 +988,7 @@ function Code() {
                       </div>
                     </div>
                   )}
-                  <div className="flex justify-center items-center">
+                  <div className="flex justify-center items-center ">
                     <button
                       onClick={handleSaveCode}
                       className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex cursor-pointer items-center gap-2 mr-2"
@@ -964,14 +1027,19 @@ function Code() {
                     </button>
                   </div>
                 </div>
-                <div className="flex flex-1">
-                  {/* Line Numbers */}
-                  <div className="w-12 bg-gray-100 p-2 font-mono text-sm text-gray-500 select-none overflow-hidden">
-                    <pre>{generateLineNumbers(code)}</pre>
-                  </div>
+                <div className="flex flex-1 bg-[#1E1E1E]">
                   {/* Code Editor */}
-                  <textarea
-                    value={code}
+                  =
+                  <Editor
+                    height="100%"
+                    width="100%"
+                    defaultLanguage="javascript"
+                    defaultValue="// write your code here"
+                    theme="vs-dark"
+                    options={{
+                      fontSize: 23,
+                      wordWrap: "on",
+                    }}
                     onChange={(e) => {
                       setCode(e.target.value);
                       setSelectedText(""); // Clear selected text when user types
@@ -989,10 +1057,7 @@ function Code() {
                         setSelectedText(codeSelectedText);
                       }
                     }}
-                    className="flex-1 p-4 font-mono text-sm bg-gray-50 rounded-lg focus:outline-none resize-none"
-                    placeholder="Write your code here..."
                   />
-
                   {selectedText && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -1055,7 +1120,7 @@ function Code() {
                         What you want to change in that
                       </p>
 
-                      {aiResponse.length>0 && (
+                      {aiResponse.length > 0 && (
                         <h2 className="text-red-500 text-center">
                           Please check your ai section.
                         </h2>
@@ -1068,10 +1133,8 @@ function Code() {
 
             {/* Output Area */}
             <div className="w-1/2 p-4">
-              {/* {editorLoading && <Loading loaderType={"editor" } loadingStyle={`w-full h-full overflow-hidden`} />} */}
-
-              <h3 className="font-semibold mb-2">Output</h3>
-              <div className="bg-white p-4 rounded-lg h-[calc(100%-40px)] overflow-y-auto font-mono text-sm">
+              <h3 className="font-semibold mb-2 text-[#e0e0e0]">Output</h3>
+              <div className="bg-[#23272E] p-4 rounded-lg h-[calc(100%-40px)] overflow-y-auto font-mono text-sm text-[#e0e0e0]">
                 <pre>
                   {output || "No output yet. Run your code to see results."}
                 </pre>
@@ -1081,242 +1144,226 @@ function Code() {
 
           {/* Bottom Section - AI Chat */}
           <div
-            className={`${
-              isAIChatOpen ? "h-1/3" : "h-12"
-            } transition-all duration-300 border-t border-gray-200 p-4 bg-gray-50 relative`}
+            id="ai"
+            className={`transition-all duration-300 border-t border-gray-700 bg-[#23272E] relative ai-chat-container   flex-shrink-0 ${
+              isAIChatOpen ? "h-[32vh] p-4" : "h-12 p-0"
+            }`}
+            style={{
+              minHeight: isAIChatOpen ? "250px" : "3rem", // Ensures enough height for chat on open
+              maxHeight: isAIChatOpen ? "32vh" : "3rem", // Prevents overflow on open
+              overflow: isAIChatOpen ? "visible" : "hidden",
+              position: "sticky",
+              bottom: 0,
+              zIndex: 30,
+            }}
           >
-            <div
-              className="absolute top-0 left-0 right-0 h-2 cursor-ns-resize bg-gray-200 hover:bg-blue-500 transition-colors"
-              onMouseDown={(e) => {
-                const startY = e.clientY;
-                const startHeight = e.target.parentElement.offsetHeight;
-                const container = e.target.parentElement;
-
-                const handleMouseMove = (moveEvent) => {
-                  const deltaY = moveEvent.clientY - startY;
-                  const newHeight = Math.max(48, startHeight + deltaY);
-                  container.style.height = `${newHeight}px`;
-
-                  // Smooth animation
-                  container.style.transition = "none";
-                  requestAnimationFrame(() => {
-                    container.style.transition = "height 0.1s ease-out";
-                  });
-                };
-
-                const handleMouseUp = () => {
-                  document.removeEventListener("mousemove", handleMouseMove);
-                  document.removeEventListener("mouseup", handleMouseUp);
-                };
-
-                document.addEventListener("mousemove", handleMouseMove);
-                document.addEventListener("mouseup", handleMouseUp);
-              }}
-            />
-            <div className="absolute top-0 right-4 flex gap-2">
-              <button
-                onClick={() => {
-                  const container =
-                    document.querySelector(".ai-chat-container");
-                  const currentHeight = container.offsetHeight;
-                  container.style.height = `${currentHeight + 50}px`;
-                }}
-                className="p-1 bg-gray-200 hover:bg-blue-500 rounded-full transition-colors"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-              <button
-                onClick={() => {
-                  const container =
-                    document.querySelector(".ai-chat-container");
-                  const currentHeight = container.offsetHeight;
-                  container.style.height = `${Math.max(
-                    48,
-                    currentHeight - 50
-                  )}px`;
-                }}
-                className="p-1 bg-gray-200 hover:bg-blue-500 rounded-full transition-colors"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-            </div>
             {/* AI Chat Toggle Button */}
             <button
               onClick={() => setIsAIChatOpen(!isAIChatOpen)}
-              className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10 bg-blue-500 hover:bg-blue-600 px-4 py-1 rounded-full cursor-pointer transition-colors duration-200 shadow-md text-white"
+              className={`absolute -top-0 left-1/2 transform -translate-x-1/2 z-50 bg-blue-500 hover:bg-blue-600 px-4 py-2  cursor-pointer transition-colors duration-200 shadow-md text-white rounded-${isAIChatOpen?"full":"md"} transition-all`}
             >
               {isAIChatOpen ? "Hide AI Chat" : "Show AI Chat"}
             </button>
 
             {isAIChatOpen && (
-              <div className="flex flex-col h-full pt-4">
-                <h3 className="font-semibold mb-2">AI Assistant</h3>
-                <div className="flex-1 bg-white rounded-lg p-4 mb-2 overflow-y-auto">
-                  {aiResponse && aiResponse.length > 0 && (
-                    <div className="space-y-6">
-                      {aiResponse.map((response, index) => (
-                        <div key={index} className="flex items-start gap-4">
-                          <div className="flex-shrink-0">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-md">
-                              <span className="text-white font-bold">AI</span>
-                            </div>
-                          </div>
-
-                          <div
-                            className="flex-1 bg-white border border-blue-200 rounded-xl p-4 shadow-sm"
-                            ref={(el) => {
-                              if (el && !hasScrolled) {
-                                el.scrollIntoView({ behavior: "smooth" });
-                                setHasScrolled(true);
-                              }
-                            }}
-                          >
-                            <p className="text-blue-800 font-semibold mb-2 text-lg">
-                              {response.question}
-                            </p>
-
-                            <div className="text-gray-800 whitespace-pre-line leading-relaxed space-y-4">
-                              {response.answer
-                                ?.split(/```([\s\S]*?)```/g)
-                                .map((part, i) =>
-                                  i % 2 === 1 ? (
-                                    <pre
-                                      key={i}
-                                      className="bg-gray-900 text-green-200 p-4 rounded-md overflow-x-auto text-sm font-mono"
-                                    >
-                                      {part.trim()}
-                                    </pre>
-                                  ) : (
-                                    <p key={i}>{part.trim()}</p>
-                                  )
-                                )}
-                              {!response.answer && (
-                                <p className="text-gray-500 italic">
-                                  use " sudo/ " and paste all your code for
-                                  change.
-                                </p>
-                              )}
-                              {response.answer?.includes("```") && (
-                                <div className="flex gap-2 mt-4">
-                                  <button
-                                    onClick={() => {
-                                      const codeBlock =
-                                        response.answer.match(
-                                          /```([\s\S]*?)```/
-                                        )?.[1];
-                                      if (codeBlock) {
-                                        // Store the original code before modification
-                                        const originalCode = code;
-                                        if (selectedText) {
-                                          // Replace selected text with AI code
-                                          const newCode = code.replace(
-                                            selectedText,
-                                            codeBlock.trim()
-                                          );
-                                          setCode(newCode);
-                                        } else {
-                                          // Replace entire code if no selection
-                                          setCode(codeBlock.trim());
-                                        }
-                                        setShowUndoButton(true);
-                                        setOriginalCode(originalCode);
-                                      }
-                                    }}
-                                    className="px-4 py-2 bg-green-500 cursor-pointer text-white rounded-lg hover:bg-green-600 transition-colors"
-                                  >
-                                    Add AI response to your code
-                                  </button>
-                                  {showUndoButton && (
-                                    <button
-                                      onClick={() => {
-                                        setCode(originalCode);
-                                        setShowUndoButton(false);
-                                      }}
-                                      className="px-4 py-2 bg-red-500 cursor-pointer text-white rounded-lg hover:bg-red-600 transition-colors"
-                                    >
-                                      Undo Changes
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {aiLoading && (
-                    <Loading
-                      loaderType={"ai"}
-                      loadingStyle={`w-full h-full `}
-                    />
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={userQuery}
-                    onChange={(e) => {
-                      const input = e.target.value;
-                      setUserQuery(input);
-
-                      // Build query based on selectedText once, if query is not already set
-                      if (!query && selectedText) {
-                        setQuery(`${selectedText} ${input}`);
-                      } else {
-                        setQuery(`${selectedText} ${input}`);
-                      }
-
-                      const value = e.target.value.toLowerCase();
-
-                      if (value.includes("sudo/")) {
-                        const replaced = value.replace(/sudo\//g, code); // replace all occurrences
-                        setQuery(replaced);
-                        return;
-                      }
-
-                      return setQuery(e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && query.trim()) {
-                        sendPropmt(); // Ensure this function exists
-                      }
-                    }}
-                    placeholder="Ask AI assistant..."
-                    className="flex-1 text-xl px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-
+              <>
+                <div className="absolute top-0 right-4 flex gap-2">
                   <button
-                    onClick={sendPropmt}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    onClick={() => {
+                      const container =
+                        document.querySelector(".ai-chat-container");
+                      const currentHeight = container.offsetHeight;
+                      container.style.height = `${currentHeight + 50}px`;
+                    }}
+                    className="p-1 bg-[#23272E] hover:bg-blue-500 rounded-full transition-colors"
                   >
-                    <SendHorizontal />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const container =
+                        document.querySelector(".ai-chat-container");
+                      const currentHeight = container.offsetHeight;
+                      container.style.height = `${Math.max(
+                        48,
+                        currentHeight - 50
+                      )}px`;
+                    }}
+                    className="p-1 bg-[#23272E] hover:bg-blue-500 rounded-full transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                   </button>
                 </div>
-              </div>
+                <div className="flex flex-col h-full pt-4">
+                  <h3 className="font-semibold mb-2 text-[#e0e0e0]">
+                    AI Assistant
+                  </h3>
+                  <div className="flex-1 bg-[#1E1E1E] rounded-lg p-4 mb-2 overflow-y-auto">
+                    {aiResponse && aiResponse.length > 0 && (
+                      <div className="space-y-6">
+                        {aiResponse.map((response, index) => (
+                          <div key={index} className="flex items-start gap-4">
+                            <div className="flex-shrink-0">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-md">
+                                <span className="text-white font-bold">AI</span>
+                              </div>
+                            </div>
+
+                            <div
+                              className="flex-1 bg-white border border-blue-200 rounded-xl p-4 shadow-sm"
+                              ref={(el) => {
+                                if (el && !hasScrolled) {
+                                  el.scrollIntoView({ behavior: "smooth" });
+                                  setHasScrolled(true);
+                                }
+                              }}
+                            >
+                              <p className="text-blue-800 font-semibold mb-2 text-lg">
+                                {response.question}
+                              </p>
+
+                              <div className="text-gray-800 whitespace-pre-line leading-relaxed space-y-4">
+                                {response.answer
+                                  ?.split(/```([\s\S]*?)```/g)
+                                  .map((part, i) =>
+                                    i % 2 === 1 ? (
+                                      <pre
+                                        key={i}
+                                        className="bg-gray-900 text-green-200 p-4 rounded-md overflow-x-auto text-sm font-mono"
+                                      >
+                                        {part.trim()}
+                                      </pre>
+                                    ) : (
+                                      <p key={i}>{part.trim()}</p>
+                                    )
+                                  )}
+                                {!response.answer && (
+                                  <p className="text-gray-500 italic">
+                                    use " sudo/ " and paste all your code for
+                                    change.
+                                  </p>
+                                )}
+                                {response.answer?.includes("```") && (
+                                  <div className="flex gap-2 mt-4">
+                                    <button
+                                      onClick={() => {
+                                        const codeBlock =
+                                          response.answer.match(
+                                            /```([\s\S]*?)```/
+                                          )?.[1];
+                                        if (codeBlock) {
+                                          // Store the original code before modification
+                                          const originalCode = code;
+                                          if (selectedText) {
+                                            // Replace selected text with AI code
+                                            const newCode = code.replace(
+                                              selectedText,
+                                              codeBlock.trim()
+                                            );
+                                            setCode(newCode);
+                                          } else {
+                                            // Replace entire code if no selection
+                                            setCode(codeBlock.trim());
+                                          }
+                                          setShowUndoButton(true);
+                                          setOriginalCode(originalCode);
+                                        }
+                                      }}
+                                      className="px-4 py-2 bg-green-500 cursor-pointer text-white rounded-lg hover:bg-green-600 transition-colors"
+                                    >
+                                      Add AI response to your code
+                                    </button>
+                                    {showUndoButton && (
+                                      <button
+                                        onClick={() => {
+                                          setCode(originalCode);
+                                          setShowUndoButton(false);
+                                        }}
+                                        className="px-4 py-2 bg-red-500 cursor-pointer text-white rounded-lg hover:bg-red-600 transition-colors"
+                                      >
+                                        Undo Changes
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {aiLoading && (
+                      <Loading
+                        loaderType={"ai"}
+                        loadingStyle={`w-full h-full `}
+                      />
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={userQuery}
+                      onChange={(e) => {
+                        const input = e.target.value;
+                        setUserQuery(input);
+
+                        if (!query && selectedText) {
+                          setQuery(`${selectedText} ${input}`);
+                        } else {
+                          setQuery(`${selectedText} ${input}`);
+                        }
+
+                        const value = e.target.value.toLowerCase();
+
+                        if (value.includes("sudo/")) {
+                          const replaced = value.replace(/sudo\//g, code);
+                          setQuery(replaced);
+                          return;
+                        }
+
+                        return setQuery(e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && query.trim()) {
+                          sendPropmt();
+                        }
+                      }}
+                      placeholder="Ask AI assistant..."
+                      className="flex-1 text-xl px-3 py-2 rounded-lg border border-gray-700 bg-[#23272E] text-[#e0e0e0] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+
+                    <button
+                      onClick={sendPropmt}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      <SendHorizontal />
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>

@@ -12,6 +12,7 @@ import Projects from "./component/projects/Projects";
 import Followers from "./component/followers/Followers";
 import Code from "./component/codingEnv/Code";
 import Loading from "./component/loading/Loading";
+import MonacoEditor from "./component/codingEnv/MonacoEditor";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
               <Route path="/followers" element={<Followers/>}/>
               <Route path="/code" element={<Code/>}/>
               <Route path="/loading" element={<Loading/>} />
+              <Route path="/monaco" element={<MonacoEditor/>}/>
           </Route>
         </Routes>
       </BrowserRouter>

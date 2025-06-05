@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codemirror/basic-setup": "^0.20.0",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/view": "^6.37.1",
+    "@monaco-editor/react": "^4.7.0",
     "@react-oauth/google": "^0.12.2",
     "@tailwindcss/vite": "^4.1.7",
     "axios": "^1.9.0",
@@ -17,6 +21,8 @@
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
+    "react-codemirror": "^1.0.0",
+    "react-codemirror2": "^8.0.1",
     "react-dom": "^19.1.0",
     "react-router-dom": "^6.30.1",
     "react-spinners": "^0.17.0",

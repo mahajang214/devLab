@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-function Nav() {
+function Nav({navStyle}) {
   const [isOpen, setIsOpen] = useState(false);
   
 
@@ -64,7 +64,7 @@ function Nav() {
   
 
   return (
-    <header className="bg-white shadow-md px-6 py-4">
+    <header className={` shadow-md px-6 py-4 ${navStyle}`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center">
           {/* Logo */}
