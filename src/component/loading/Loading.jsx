@@ -3,7 +3,7 @@ import { ScaleLoader, RiseLoader, HashLoader } from "react-spinners";
 
 function Loading({ loaderType, loadingStyle }) {
   return (
-    <div className={`absolute inset-0 flex items-center justify-center z-50 backdrop-blur-2xl ${loadingStyle || ''}`}>
+    <div className={`absolute  inset-0 flex items-center justify-center z-50 backdrop-blur-md bg-gray-900 ${loadingStyle || ''}`}>
       {loaderType === "editor" && (
         <ScaleLoader
           color="#3B82F6"

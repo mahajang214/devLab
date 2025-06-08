@@ -2,10 +2,12 @@ import axios from "axios";
 import { Folder, Users } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Nav from "../nav/Nav";
+import Loading from "../loading/Loading";
 
 function Coders() {
   const [coders, setCoders] = useState([]);
   const [isFollowing, setIsFollowing] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const getMyInfo = async () => {
     try {
@@ -25,6 +27,7 @@ function Coders() {
   };
   const fetchCoders = async () => {
     try {
+      setLoading(true);
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/main/coders`,
         {
@@ -34,8 +37,10 @@ function Coders() {
         }
       );
       setCoders(response.data.data);
+      setLoading(false);
       // console.log("coders:",response.data.data);
     } catch (error) {
+      setLoading(false);
       console.error("Error fetching coders:", error.message);
     }
   };
@@ -46,6 +51,7 @@ function Coders() {
     //     coderId
     // )
     try {
+      setLoading(true);
       const response = await axios.put(
         `${import.meta.env.VITE_BASE_URL}/main/follow/${coderId}`,
         {},
@@ -65,14 +71,17 @@ function Coders() {
         )
       );
         console.log("Successfully followed user");
+        setLoading(false);
         // Remove fetchCoders() since we already update the state locally
     } catch (error) {
+      setLoading(false);
       console.error("Error following/unfollowing coder:", error.message);
     }
   };
 
   const handleUnfollow = async (coderId) => {
     try {
+      setLoading(true);
       const response = await axios.put(
         `${import.meta.env.VITE_BASE_URL}/main/unfollow/${coderId}`,
         {},
@@ -90,7 +99,9 @@ function Coders() {
         )
       );
       console.log("Successfully unfollowed user");
+      setLoading(false);
     } catch (error) {
+      setLoading(false);
       console.error("Error unfollowing coder:", error.message);
     }
   };
@@ -109,6 +120,8 @@ function Coders() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-gray-800">All Coders</h1>
       <div className="grid grid-cols-1  gap-6 overflow-y-auto h-[80svh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
+      {loading && <Loading loaderType={`chat`} />}
+
         {coders.map((coder) => (
           <div
             key={coder._id}

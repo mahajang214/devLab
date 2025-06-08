@@ -1,13 +1,16 @@
 import React, { useEffect,useState } from 'react'
 import Nav from '../nav/Nav'
 import axios from 'axios';
+import Loading from '../loading/Loading';
 
 function Followings() {
   const [showFollowings, setShowFollowings] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(()=>{
     const followings= async () => {
       try {
+        setLoading(true);
         const response = await axios.get(
           `${import.meta.env.VITE_BASE_URL}/main/followings`,
           {
@@ -16,10 +19,12 @@ function Followings() {
             },
           }
         );
-        console.log("following:",response.data.data);
+        // console.log("following:",response.data.data);
         setShowFollowings(response.data.data);
+        setLoading(false);
         // setShowFollowers(!showFollowers);
       } catch (error) {
+        setLoading(false);
         console.error("Error fetching followers:", error.message);
       }
     }
@@ -30,6 +35,7 @@ function Followings() {
     // console.log("token Val:",localStorage.getItem("token"))
     // console.log("base url:",import.meta.env.VITE_BASE_URL);
     try {
+      setLoading(true);
       const response = await axios.put(
         `${import.meta.env.VITE_BASE_URL}/main/unfollow/${id}`,{},
         {
@@ -41,9 +47,11 @@ function Followings() {
       // console.log("following:",response.data.data);
       // setShowFollowings(response.data.data);
       // setShowFollowers(!showFollowers);
-    alert("Successfully unfollowed user!");
-    setShowFollowings(prevFollowings => prevFollowings.filter(following => following.id !== id));
+      alert("Successfully unfollowed user!");
+      setShowFollowings(prevFollowings => prevFollowings.filter(following => following.id !== id));
+      setLoading(false);
     } catch (error) {
+      setLoading(false);
       console.error("Error unfollowing user:", error.message);
     }
   }
@@ -82,6 +90,7 @@ function Followings() {
       {/* Followers Grid */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1  gap-6 items-center">
+          {loading && <Loading loaderType={`chat`} />}
           {/* Follower Card */}
           {showFollowings.map((follower) => (
             <div key={follower.id} className="bg-white  rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow w-full">

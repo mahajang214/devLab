@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+.remote-cursor {
+    border-left: 2px solid;
+    margin-left: -1px;
+    height: 100%;
+    pointer-events: none;
+  }
+  
+  .cursor-red { border-color: red; }
+  .cursor-green { border-color: green; }
+  .cursor-blue { border-color: blue; }
+  .cursor-orange { border-color: orange; }
+  .cursor-purple { border-color: purple; }
+  

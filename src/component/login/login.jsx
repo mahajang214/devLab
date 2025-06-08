@@ -4,8 +4,13 @@ import axios from "axios";
 import {Link, useNavigate} from 'react-router-dom'
 import userStore from "../context/store";
 
+
+
+
+
 function Login() {
   const [user, setUser] = useState(null);
+ 
     const navigete=useNavigate();
     // const { setUsername, setUserId } = userStore((state) => ({
     //   setUsername: state.setUsername,
@@ -36,10 +41,11 @@ function Login() {
 
 // console.log("data:",res.data.user.firstName)
     const { setUsername, setUserId,setUserPic } = userStore.getState();
-    setUsername(res.data.user.firstName);
+    setUsername(`${res.data.user.firstName} ${res.data.user.lastName}`);
     setUserId(res.data.user._id);
     setUserPic(res.data.user.picture);
     // setUser(res.data.user);
+    
     navigete("/");
   
     } catch (error) {

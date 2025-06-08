@@ -1,34 +1,42 @@
 import React,{useEffect, useState} from 'react'
 import Nav from '../nav/Nav'
 import axios from 'axios';
+import Loading from '../loading/Loading';
 
 function Followers() {
     const [showFollowers, setShowFollowers] = useState([]);
     const [currentFollowings, setCurrentFollowings] = useState([]);
+    const [loading, setLoading] = useState(false);
     useEffect(()=>{
         const fetchFollowers=async () => {
             try {
+setLoading(true);
                 const res=await axios.get(`${import.meta.env.VITE_BASE_URL}/main/followers`,{
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                       },
                 });
                 setShowFollowers(res.data.data);
-                console.log("followers:",res.data.data);
+                // console.log("followers:",res.data.data);
+                setLoading(false);
             } catch (error) {
+              setLoading(false);
                 console.log("Error fetching followers:",error.message);
             }
         }
         const fetchMyFollowing=async () => {
             try {
+              setLoading(true);
                 const res=await axios.get(`${import.meta.env.VITE_BASE_URL}/main/followings`,{
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("token")}`,
                       },
                 });
                 setCurrentFollowings(res.data.data);
-                console.log("current followings:",res.data.data);
+                // console.log("current followings:",res.data.data);
+                setLoading(false);
             } catch (error) {
+              setLoading(false);
                 console.log("Error fetching current followings:",error.message);
             }
         }
@@ -38,6 +46,7 @@ function Followers() {
 
     const unfollowUser=async (id) => {
         try {
+          setLoading(true);
             const response = await axios.put(
               `${import.meta.env.VITE_BASE_URL}/main/unfollow/${id}`,{},
               {
@@ -50,7 +59,9 @@ function Followers() {
             // console.log("following:",response.data.data);
             // setShowFollowings(response.data.data);
           alert("Successfully Unfollowed user!");
+          setLoading(false);
           } catch (error) {
+            setLoading(false);
             console.error("Error unfollowing user:", error.message);
           }
     }
@@ -60,6 +71,7 @@ function Followers() {
         // console.log("base url:",import.meta.env.VITE_BASE_URL);
         // console.log("id:",id);
         try {
+          setLoading(true);
           const response = await axios.put(
             `${import.meta.env.VITE_BASE_URL}/main/follow/${id}`,{},
             {
@@ -72,7 +84,9 @@ function Followers() {
         //   console.log("following:",response.data.data);
         //   setShowFollowings(response.data.data);
         alert("Successfully followed user!");
+        setLoading(false);
         } catch (error) {
+          setLoading(false);
           console.error("Error following user:", error.message);
         }
       }
@@ -107,6 +121,7 @@ function Followers() {
       {/* Followers Grid */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 gap-6 items-center">
+          {loading && <Loading loaderType={`chat`} />}
           {/* Follower Card */}
           {showFollowers.map((follower) => (
             <div key={follower.id} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow w-full">

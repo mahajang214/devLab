@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Nav from "../nav/Nav";
 import axios from "axios";
 import userStore from "../context/store";
@@ -25,6 +25,7 @@ function Code() {
   const userPic = userStore((state) => state.userPic);
   const fileID = userStore((state) => state.fileID);
   const folderID = userStore((state) => state.folderID);
+  const socket = userStore((state) => state.socket);
 
   const [showFileModal, setShowFileModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -45,6 +46,7 @@ function Code() {
   const [originalCode, setOriginalCode] = useState("");
 
   const [expandedFolders, setExpandedFolders] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -52,6 +54,74 @@ function Code() {
 
   const [selectedText, setSelectedText] = useState("");
   const [hasScrolled, setHasScrolled] = useState(false);
+
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showFolderRenameModal, setShowFolderRenameModal] = useState(false);
+
+  const [roomID, setRoomID] = useState("");
+
+  const remoteCursors = new Map();
+  const selectFileRef = useRef(selectFile);
+
+  // console.log("online users:", onlineUsers);
+
+  // socket
+  useEffect(() => {
+    socket.on("connect", () => {
+      // console.log(`Client is connected: `);
+    });
+
+    socket.on("message", (msg) => {
+      // console.log('new message received:', msg);
+      setGetAllMessages((prev) => [...prev, msg]);
+    });
+
+    // online users
+    socket.on("online-users", (data) => {
+      // console.log("socket online users data:", data);
+      const isUserAlreadyOnline = onlineUsers.some(
+        (user) => user.data.username !== data.username
+      );
+      if (!isUserAlreadyOnline) {
+        setOnlineUsers((prev) => [...prev, { data }]);
+      }
+    });
+
+    socket.on("join-room", (roomid) => {
+      // console.log("join room data:", roomid);
+      // setRoomID(roomid);
+    });
+
+    socket.on("code-change", ({  code,fileName }) => {
+      // console.log("socket code updated");
+      // setCode(data.content);
+
+      if (fileName === selectFileRef.current.fileName  || fileName == selectFileRef.current.folderName){
+       return  setCode(code);
+      } 
+      return;
+
+      
+    });
+
+    socket.on("cursor-move", ({ username, cursorPosition, fileName }) => {
+      
+
+      if (fileName !== (selectFile?.fileName )) return; // only show for current file
+      showRemoteCursor(username, cursorPosition);
+    });
+    
+
+    return () => {
+      socket.off("message");
+      socket.off("online-users");
+      socket.off("join-room");
+      socket.off("code-change");
+      socket.off("join-room");
+      socket.off("connect");
+      socket.off("cursor-move");
+    };
+  }, []);
 
   const getProjectDetails = async () => {
     try {
@@ -112,14 +182,28 @@ function Code() {
       setEditorLoading(false);
     }
   };
-
   useEffect(() => {
+    if (!selectFile) {
+      return;
+    }
+    selectFileRef.current = selectFile;
+    // console.log("current file:",selectFile);
     getFileCode();
   }, [selectFile]);
+
+  useEffect(() => {
+    socket.emit("online-users", { username });
+
+    socket.emit("join-room", projectName);
+  }, []);
 
   const handleSaveCode = async () => {
     try {
       setEditorLoading(true);
+      socket.emit("code-update", {
+        fileID: fileID,
+        content: code,
+      });
       const res = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/code/update_code`,
         {
@@ -132,17 +216,14 @@ function Code() {
           },
         }
       );
-      console.log("save code data:", res.data.data);
-      alert("Code saved successfully!");
+      // console.log("save code data:", res.data.data);
+      // alert("Code saved successfully!");
       setEditorLoading(false);
     } catch (error) {
       console.log("error:", error.message);
       setEditorLoading(false);
     }
   };
-
-  // console.log("folderID:",folderID);
-  //   console.log("fileID:",fileID);
 
   const handleCreateFile = async () => {
     if (!newFileName || !projectID) {
@@ -156,13 +237,27 @@ function Code() {
     }
     const fileExtensions = {
       python: ".py",
+      python2: ".py",
       javascript: ".js",
+      typescript: ".ts",
       c: ".c",
       cpp: ".cpp",
+      "c++": ".cpp",
       java: ".java",
       go: ".go",
       ruby: ".rb",
       rust: ".rs",
+      php: ".php",
+      csharp: ".cs",
+      kotlin: ".kt",
+      swift: ".swift",
+      scala: ".scala",
+      dart: ".dart",
+      haskell: ".hs",
+      bash: ".sh",
+      perl: ".pl",
+      r: ".r",
+      lua: ".lua",
     };
     const isFileNameExists =
       files.some((file) => file.fileName === newFileName) ||
@@ -261,6 +356,15 @@ function Code() {
 
     try {
       setChatLoading(true);
+      socket.emit("message", {
+        from: userId,
+        to: projectID,
+        fromName: username,
+        toName: projectName,
+        message: sendMessage,
+        fromPic: userPic,
+      });
+
       const res = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/chat/send`,
         {
@@ -277,9 +381,9 @@ function Code() {
           },
         }
       );
-      setGetAllMessages((prev) => [...prev, res.data.data]);
+
       setSendMessage("");
-      alert("Message sent successfully!");
+      // alert("Message sent successfully!");
       setChatLoading(false);
 
       console.log("message successully sended");
@@ -288,6 +392,7 @@ function Code() {
       setChatLoading(false);
     }
   };
+
   const fetchMessages = async () => {
     try {
       // console.log("userID:",userId==="68381f581c16499b75817325");
@@ -313,12 +418,6 @@ function Code() {
     }
   };
 
-  // Function to generate line numbers
-  const generateLineNumbers = (text) => {
-    const lines = text.split("\n");
-    return lines.map((_, index) => index + 1).join("\n");
-  };
-
   // Function to handle code compilation
   const handleRunCode = async () => {
     try {
@@ -335,19 +434,47 @@ function Code() {
           language: `${selectFile.language}`,
           version:
             selectFile.language === "javascript"
-              ? "16.3.0"
+              ? "18.15.0"
+              : selectFile.language === "typescript"
+              ? "5.0.3"
+              : selectFile.language === "python"
+              ? "3.10.0"
+              : selectFile.language === "python2"
+              ? "2.7.18"
               : selectFile.language === "java"
               ? "15.0.2"
               : selectFile.language === "c"
               ? "10.2.0"
-              : selectFile.language === "cpp"
+              : selectFile.language === "c++" || selectFile.language === "cpp"
               ? "10.2.0"
               : selectFile.language === "go"
-              ? "1.15.5"
+              ? "1.16.2"
               : selectFile.language === "ruby"
-              ? "3.0.0"
+              ? "3.0.1"
               : selectFile.language === "rust"
-              ? "1.49.0"
+              ? "1.68.2"
+              : selectFile.language === "php"
+              ? "8.2.3"
+              : selectFile.language === "csharp"
+              ? "6.12.0"
+              : selectFile.language === "kotlin"
+              ? "1.8.20"
+              : selectFile.language === "swift"
+              ? "5.3.3"
+              : selectFile.language === "scala"
+              ? "3.2.2"
+              : selectFile.language === "dart"
+              ? "2.19.6"
+              : selectFile.language === "haskell"
+              ? "9.0.1"
+              : selectFile.language === "bash"
+              ? "5.2.0"
+              : selectFile.language === "perl"
+              ? "5.36.0"
+              : selectFile.language === "r"
+              ? "4.1.1"
+              : selectFile.language === "lua"
+              ? "5.4.4"
               : "3.10.0",
         },
         {
@@ -411,14 +538,255 @@ function Code() {
       console.log("error:", error.message);
     }
   };
+
   useEffect(() => {
     fetchMessages();
     getProjectDetails();
   }, []);
 
+  useEffect(() => {
+    // socket.emit("code-change", ({ roomID:roomID, data:code }));
+    // handleSaveCode();
+    // console.log("selected file fileName:",selectFile.fileName);
+    // console.log("code :",code);
+
+    if(selectFileRef.current){
+    
+      socket.emit("code-change", { roomid: projectName, code,fileName:(selectFileRef.current.fileName || selectFileRef.current.folderName) });
+  
+      // console.log("sended code to socket")
+  
+      handleSaveCode();
+    }
+
+    return;
+  }, [code]);
+
+  // console.log("file id:",fileID);
+  const deleteFile = async () => {
+    try {
+      const res = await axios.delete(
+        `${import.meta.env.VITE_BASE_URL}/code/delete_file/${fileID}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("data :", res.data.data);
+      setFiles(files.filter((file) => file._id !== fileID));
+      setFolderChilds(folderChilds.filter((file) => file._id !== fileID));
+    } catch (error) {
+      console.log("error:", error.message);
+    }
+  };
+
+  const deleteFolder = async () => {
+    try {
+      const res = await axios.delete(
+        `${import.meta.env.VITE_BASE_URL}/code/delete_folders/${folderID}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("data :", res.data.data);
+      setFolders(folders.filter((folder) => folder._id !== folderID));
+    } catch (error) {
+      console.log("error:", error.message);
+    }
+  };
+
+  const renameFile = async () => {
+    if (!newFileName || !projectID) {
+      return alert("All fields are required");
+    }
+    if (newFileName.includes(" ")) {
+      alert(
+        "File name cannot contain spaces. Please use underscores or hyphens instead."
+      );
+      return;
+    }
+
+    const isFileNameExists =
+      files.some((file) => file.fileName === newFileName) ||
+      files.some((folder) => folder.folderName === newFileName) ||
+      files.some(
+        (folder) =>
+          folder.folderChilds &&
+          folder.folderChilds.some(
+            (child) =>
+              child.fileName === newFileName || child.folderName === newFileName
+          )
+      );
+
+    if (isFileNameExists) {
+      alert("A file or folder with this name already exists");
+      return;
+    }
+
+    try {
+      const res = await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/code/rename_file`,
+        {
+          fileID,
+          newFileName,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("data :", res.data.data);
+      setFiles((prevFiles) =>
+        prevFiles.map((file) =>
+          file._id === fileID ? { ...file, fileName: newFileName } : file
+        )
+      );
+
+      // Update in folderChilds if the file exists there
+      setFolderChilds((prevChilds) =>
+        prevChilds.map((folder) => ({
+          ...folder,
+          files: folder.files.map((file) =>
+            file._id === fileID ? { ...file, fileName: newFileName } : file
+          ),
+        }))
+      );
+    } catch (error) {
+      console.log("error:", error.message);
+    }
+  };
+
+  const renameFolder = async () => {
+    const isFileNameExists =
+      files.some((file) => file.fileName === newFileName) ||
+      files.some((folder) => folder.folderName === newFileName) ||
+      files.some(
+        (folder) =>
+          folder.folderChilds &&
+          folder.folderChilds.some(
+            (child) =>
+              child.fileName === newFileName || child.folderName === newFileName
+          )
+      );
+
+    if (isFileNameExists) {
+      alert("A file or folder with this name already exists");
+      return;
+    }
+
+    try {
+      const res = await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/code/rename_folder`,
+        {
+          folderID,
+          newFileName,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("data :", res.data.data);
+      setFolders((prevFolders) =>
+        prevFolders.map((folder) =>
+          folder._id === folderID
+            ? { ...folder, folderName: newFileName }
+            : folder
+        )
+      );
+
+      // Update in folderChilds if the folder exists there
+      setFolderChilds((prevChilds) =>
+        prevChilds.map((folder) => ({
+          ...folder,
+          files: folder.files.map((file) =>
+            file._id === folderID ? { ...file, folderName: newFileName } : file
+          ),
+        }))
+      );
+    } catch (error) {
+      console.log("error:", error.message);
+    }
+  };
+
+  const editorRef = useRef(null);
+
+ 
+  const handleEditorDidMount = (editor) => {
+    editorRef.current = editor;
+
+    editor.onDidChangeCursorSelection((e) => {
+      const selection = editor.getSelection();
+      const model = editor.getModel();
+
+      if (!selection || !model) return;
+
+      const position = selection.getPosition(); // safer than e.selection.getPosition()
+
+      if (!position) return;
+      const currentSelectFile = selectFileRef.current;
+
+      const selectedText = model.getValueInRange(selection);
+      setSelectedText(selectedText);
+
+      socket.emit("cursor-move", {
+        roomid: projectName,
+        cursorPosition: {
+          line: position.lineNumber,
+          column: position.column,
+        },
+        fileName: selectFileRef.current ? (selectFileRef.current.fileName || selectFileRef.current.folderName) : "unknown",
+        username,
+      });
+    });
+  };
+
+  function showRemoteCursor(username, cursorPosition) {
+    if (!editorRef.current) return;
+    const { line, column } = cursorPosition;
+
+    // Remove previous decoration
+    const oldDecorations = remoteCursors.get(username);
+    
+    if (oldDecorations) {
+      editorRef.current.deltaDecorations(oldDecorations, []);
+    }
+
+    function getColorClass(username) {
+      const colors = ["red", "green", "blue", "orange", "purple"];
+      const index =
+        [...username].reduce((sum, c) => sum + c.charCodeAt(0), 0) %
+        colors.length;
+      return `cursor-${colors[index]}`;
+    }
+
+    // Create new decoration
+    const newDecorations = editorRef.current.deltaDecorations(
+      [],
+      [
+        {
+          range: new monaco.Range(line, column, line, column),
+          options: {
+            className: `remote-cursor ${getColorClass(username)}`,
+            hoverMessage: { value: `**${username}**` },
+            stickiness:
+              monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+          },
+        },
+      ]
+    );
+
+    remoteCursors.set(username, newDecorations);
+  }
+
   return (
     <>
-      <Nav />
+      <Nav navStyle={`bg-gray-900`} />
       <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#1E1E1E]">
         {/* Left Sidebar - 20% width */}
         <div
@@ -467,6 +835,26 @@ function Code() {
                 {projectName} Chats
               </h3>
             )}
+
+            {isSidebarOpen && (
+              <div className="my-4">
+                <h3 className="font-semibold mb-2 text-[#e0e0e0]">
+                  Online Users
+                </h3>
+                <div className="space-y-1">
+                  {onlineUsers.map((user, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 text-gray-300"
+                    >
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm">{user.data.username}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Chat list items would go here */}
 
             {isSidebarOpen && (
@@ -480,11 +868,11 @@ function Code() {
                   }}
                   className="space-y-2 overflow-y-auto  h-full "
                 >
-                  {getAllMessages.map((message) => {
+                  {getAllMessages.map((message, i) => {
                     if (message.from === userId) {
                       return (
                         <div
-                          key={message._id}
+                          key={i}
                           className={`p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer ml-auto 
                            w-[75%] bg-white`}
                         >
@@ -524,7 +912,7 @@ function Code() {
                     } else {
                       return (
                         <div
-                          key={message._id}
+                          key={i}
                           className={`p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer ${
                             message.senderName === "Wizard" ? "ml-auto" : ""
                           } w-[75%] bg-white`}
@@ -737,31 +1125,78 @@ function Code() {
                                       userStore.getState().setFileID(file._id);
                                       return setSelectedFile(file);
                                     }}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                    className={`flex justify-between items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                                       selectFile?.fileName === file.fileName
                                         ? "bg-blue-100 text-blue-700"
                                         : "hover:bg-gray-100 text-gray-700"
                                     }`}
                                   >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      className={`h-4 w-4 ${
-                                        selectFile?.fileName === file.fileName
-                                          ? "text-blue-500"
-                                          : "text-gray-500"
-                                      }`}
-                                      viewBox="0 0 20 20"
-                                      fill="currentColor"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                                        clipRule="evenodd"
-                                      />
-                                    </svg>
-                                    <span className="text-md">
-                                      {file.fileName}
-                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className={`h-4 w-4 ${
+                                          selectFile?.fileName === file.fileName
+                                            ? "text-blue-500"
+                                            : "text-gray-500"
+                                        }`}
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      <span className="text-md">
+                                        {file.fileName}
+                                      </span>
+                                    </div>
+
+                                    {/* rename file */}
+                                    {fileID === file._id && (
+                                      <div className=" ">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNewFileName(file.fileName);
+                                            setShowRenameModal(true);
+                                          }}
+                                          className="ml-auto p-1 cursor-pointer hover:bg-blue-100 rounded-full transition-colors mr-1"
+                                        >
+                                          <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-4 w-4 text-blue-500"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                          >
+                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                          </svg>
+                                        </button>
+
+                                        {/* delete button */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            return deleteFile(file._id);
+                                          }}
+                                          className="ml-auto p-1 cursor-pointer hover:bg-red-100 rounded-full transition-colors"
+                                        >
+                                          <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-4 w-4 text-red-500"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                          >
+                                            <path
+                                              fillRule="evenodd"
+                                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                              clipRule="evenodd"
+                                            />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    )}
                                   </motion.div>
                                 ))}
                               </div>
@@ -772,9 +1207,8 @@ function Code() {
                                   Folders
                                 </h4>
                                 {folders.map((folder, index) => (
-                                  <>
+                                  <div key={folder._id}>
                                     <motion.div
-                                      key={folder._id}
                                       initial={{ opacity: 0, x: -20 }}
                                       animate={{ opacity: 1, x: 0 }}
                                       transition={{ delay: index * 0.1 }}
@@ -786,17 +1220,70 @@ function Code() {
                                         userStore.getState().setFileID("");
                                         setSelectedFile(null);
                                       }}
-                                      className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                      className={`flex justify-between items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
                                         userStore.getState().folderID ===
                                         folder._id
                                           ? "bg-green-100 text-green-700"
                                           : "hover:bg-gray-100 text-gray-700"
                                       }`}
                                     >
-                                      <Folder className="h-4 w-4 text-gray-500" />
-                                      <span className="text-md">
-                                        {folder.folderName}
-                                      </span>
+                                      <div className="flex items-center gap-1">
+                                        <Folder className="h-4 w-4 text-gray-500" />
+                                        <span className="text-md">
+                                          {folder.folderName}
+                                        </span>
+                                      </div>
+
+                                      <div>
+                                        {folderID === folder._id && (
+                                          <>
+                                            {/* rename btn */}
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setNewFileName(
+                                                  folder.folderName
+                                                );
+                                                // setFolderID(folder._id);
+                                                setShowFolderRenameModal(true);
+                                              }}
+                                              className="ml-auto p-1 hover:bg-blue-100 rounded-full transition-colors"
+                                            >
+                                              <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-4 w-4 text-blue-500"
+                                                viewBox="0 0 20 20"
+                                                fill="currentColor"
+                                              >
+                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                              </svg>
+                                            </button>
+
+                                            {/* delete btn */}
+
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                return deleteFolder(folder._id);
+                                              }}
+                                              className="ml-auto p-1 hover:bg-red-100 rounded-full transition-colors"
+                                            >
+                                              <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-4 w-4 text-red-500"
+                                                viewBox="0 0 20 20"
+                                                fill="currentColor"
+                                              >
+                                                <path
+                                                  fillRule="evenodd"
+                                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                                  clipRule="evenodd"
+                                                />
+                                              </svg>
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
                                     </motion.div>
                                     {folderChilds.map((el, k) => {
                                       return (
@@ -813,38 +1300,88 @@ function Code() {
                                                 .setFileID(el._id);
                                               setSelectedFile(el);
                                             }}
-                                            className={`flex items-center gap-2 px-3 py-2 ml-4 rounded-lg cursor-pointer transition-colors ${
+                                            className={`flex justify-between items-center gap-2 px-3 py-2 ml-4 rounded-lg cursor-pointer transition-colors ${
                                               selectFile?.fileName ===
                                               el.fileName
                                                 ? "bg-blue-100 text-blue-700"
                                                 : "hover:bg-gray-100 text-gray-700"
                                             }`}
                                           >
-                                            <svg
-                                              xmlns="http://www.w3.org/2000/svg"
-                                              className={`h-4 w-4 ${
-                                                selectFile?.fileName ===
-                                                el.fileName
-                                                  ? "text-blue-500"
-                                                  : "text-gray-500"
-                                              }`}
-                                              viewBox="0 0 20 20"
-                                              fill="currentColor"
-                                            >
-                                              <path
-                                                fillRule="evenodd"
-                                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                                                clipRule="evenodd"
-                                              />
-                                            </svg>
-                                            <span className="text-md">
-                                              {el.fileName}
-                                            </span>
+                                            <div className="flex items-center">
+                                              <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className={`h-4 w-4 ${
+                                                  selectFile?.fileName ===
+                                                  el.fileName
+                                                    ? "text-blue-500"
+                                                    : "text-gray-500"
+                                                }`}
+                                                viewBox="0 0 20 20"
+                                                fill="currentColor"
+                                              >
+                                                <path
+                                                  fillRule="evenodd"
+                                                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                                  clipRule="evenodd"
+                                                />
+                                              </svg>
+                                              <span className="text-md">
+                                                {el.fileName}
+                                              </span>
+                                            </div>
+                                            <div>
+                                              {/* delete button */}
+                                              {/* rename btn */}
+                                              {fileID === el._id && (
+                                                <>
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setNewFileName(
+                                                        file.fileName
+                                                      );
+                                                      setShowRenameModal(true);
+                                                    }}
+                                                    className="ml-auto p-1 cursor-pointer hover:bg-blue-100 rounded-full transition-colors mr-1"
+                                                  >
+                                                    <svg
+                                                      xmlns="http://www.w3.org/2000/svg"
+                                                      className="h-4 w-4 text-blue-500"
+                                                      viewBox="0 0 20 20"
+                                                      fill="currentColor"
+                                                    >
+                                                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                                    </svg>
+                                                  </button>
+
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      return deleteFile(el._id);
+                                                    }}
+                                                    className="ml-auto p-1 cursor-pointer hover:bg-red-100 rounded-full transition-colors"
+                                                  >
+                                                    <svg
+                                                      xmlns="http://www.w3.org/2000/svg"
+                                                      className="h-4 w-4 text-red-500"
+                                                      viewBox="0 0 20 20"
+                                                      fill="currentColor"
+                                                    >
+                                                      <path
+                                                        fillRule="evenodd"
+                                                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                                        clipRule="evenodd"
+                                                      />
+                                                    </svg>
+                                                  </button>
+                                                </>
+                                              )}
+                                            </div>
                                           </motion.div>
                                         )
                                       );
                                     })}
-                                  </>
+                                  </div>
                                 ))}
                               </div>
 
@@ -900,6 +1437,81 @@ function Code() {
                             >
                               No files created yet
                             </motion.p>
+                          )}
+                          {/* Rename file Modal */}
+                          {showRenameModal && (
+                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                              <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
+                                <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                                  Rename File
+                                </h3>
+                                <input
+                                  type="text"
+                                  value={newFileName}
+                                  onChange={(e) =>
+                                    setNewFileName(e.target.value)
+                                  }
+                                  placeholder="Enter new file name"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={() => setShowRenameModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      renameFile();
+                                      setShowRenameModal(false);
+                                    }}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                  >
+                                    Rename
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* folder rename modal */}
+                          {showFolderRenameModal && (
+                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                              <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
+                                <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                                  Rename Folder
+                                </h3>
+                                <input
+                                  type="text"
+                                  value={newFileName}
+                                  onChange={(e) =>
+                                    setNewFileName(e.target.value)
+                                  }
+                                  placeholder="Enter new folder name"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={() =>
+                                      setShowFolderRenameModal(false)
+                                    }
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      renameFolder();
+                                      setShowFolderRenameModal(false);
+                                    }}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                  >
+                                    Rename
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1027,36 +1639,46 @@ function Code() {
                     </button>
                   </div>
                 </div>
+                {/* Code Editor */}
                 <div className="flex flex-1 bg-[#1E1E1E]">
-                  {/* Code Editor */}
-                  =
+                  {/* {console.log("select file language:", selectFile.language)} */}
                   <Editor
                     height="100%"
                     width="100%"
-                    defaultLanguage="javascript"
+                    defaultLanguage={
+                      selectFile ? selectFile.language : "javascript"
+                    }
                     defaultValue="// write your code here"
+                    value={code}
                     theme="vs-dark"
                     options={{
                       fontSize: 23,
                       wordWrap: "on",
                     }}
-                    onChange={(e) => {
-                      setCode(e.target.value);
-                      setSelectedText(""); // Clear selected text when user types
+                    onMount={handleEditorDidMount}
+                    onChange={(value) => {
+                      setCode(value);
+                      // console.log("code:",code);
+                      setSelectedText("");
                     }}
-                    onSelect={(e) => {
-                      const value = e.target.value;
-                      const selectionStart = e.target.selectionStart;
-                      const selectionEnd = e.target.selectionEnd;
 
-                      if (selectionStart !== selectionEnd) {
-                        const codeSelectedText = value.substring(
-                          selectionStart,
-                          selectionEnd
-                        );
-                        setSelectedText(codeSelectedText);
-                      }
-                    }}
+                    // onChange={(e) => {
+                    //   setCode(e.target.value);
+                    //   setSelectedText(""); // Clear selected text when user types
+                    // }}
+                    // onSelect={(e) => {
+                    //   const value = e.target.value;
+                    //   const selectionStart = e.target.selectionStart;
+                    //   const selectionEnd = e.target.selectionEnd;
+
+                    //   if (selectionStart !== selectionEnd) {
+                    //     const codeSelectedText = value.substring(
+                    //       selectionStart,
+                    //       selectionEnd
+                    //     );
+                    //     setSelectedText(codeSelectedText);
+                    //   }
+                    // }}
                   />
                   {selectedText && (
                     <motion.div
@@ -1160,14 +1782,16 @@ function Code() {
             {/* AI Chat Toggle Button */}
             <button
               onClick={() => setIsAIChatOpen(!isAIChatOpen)}
-              className={`absolute -top-0 left-1/2 transform -translate-x-1/2 z-50 bg-blue-500 hover:bg-blue-600 px-4 py-2  cursor-pointer transition-colors duration-200 shadow-md text-white rounded-${isAIChatOpen?"full":"md"} transition-all`}
+              className={`absolute -top-0 left-1/2 transform -translate-x-1/2 z-50 bg-blue-500 hover:bg-blue-600 px-4 py-2  cursor-pointer transition-colors duration-200 shadow-md text-white rounded-${
+                isAIChatOpen ? "full" : "md"
+              } transition-all`}
             >
               {isAIChatOpen ? "Hide AI Chat" : "Show AI Chat"}
             </button>
 
             {isAIChatOpen && (
               <>
-                <div className="absolute top-0 right-4 flex gap-2">
+                {/* <div className="absolute top-0 right-4 flex gap-2">
                   <button
                     onClick={() => {
                       const container =
@@ -1215,7 +1839,7 @@ function Code() {
                       />
                     </svg>
                   </button>
-                </div>
+                </div> */}
                 <div className="flex flex-col h-full pt-4">
                   <h3 className="font-semibold mb-2 text-[#e0e0e0]">
                     AI Assistant
