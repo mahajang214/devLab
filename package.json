@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "postbuild": "cp dist/index.html dist/404.html",
+    "deploy": "npm run build && npm run postbuild && gh-pages -d dist"
   },
   "dependencies": {
     "@codemirror/basic-setup": "^0.20.0",
