@@ -1,9 +1,9 @@
-import { Navigate, Outlet } from "react-router-dom";
+// ProtectedRoute.jsx
+import { Navigate } from 'react-router-dom';
 
-const ProtectedRoute = () => {
-  const token = localStorage.getItem("token"); // or use a cookie if secure
+export default function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token');
+  if (!token) return <Navigate to="/login" />;
+  return children;
+}
 
-  return token ? <Outlet /> : <Navigate to="/login" replace />;
-};
-
-export default ProtectedRoute;

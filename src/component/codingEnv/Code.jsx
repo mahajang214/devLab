@@ -120,6 +120,12 @@ function Code() {
       socket.off("join-room");
       socket.off("connect");
       socket.off("cursor-move");
+    if (!localStorage.getItem("token") || !username) {
+      console.log("username:",username)
+      localStorage.removeItem("token");
+      navigate("/login");
+    }
+    socket.off("disconnect");
     };
   }, []);
 
@@ -791,7 +797,7 @@ function Code() {
         {/* Left Sidebar - 20% width */}
         <div
           className={`${
-            isSidebarOpen ? "w-1/5" : "w-0"
+            isSidebarOpen ? "w-full sm:w-full md:w-1/3 lg:w-1/5" : "w-0"
           } transition-all duration-300 bg-[#23272E] border-r border-[#333] flex flex-col overflow-x-visible relative`}
         >
           {/* Toggle Button - Vertically Centered */}
@@ -802,7 +808,7 @@ function Code() {
             {isSidebarOpen ? (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-white"
+                className="h-4 w-4 md:h-5 md:w-5 text-white"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -815,7 +821,7 @@ function Code() {
             ) : (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-white"
+                className="h-4 w-4 md:h-5 md:w-5 text-white"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -829,16 +835,16 @@ function Code() {
           </button>
 
           {/* Chat List */}
-          <div className="flex-1 overflow-hidden py-10 px-3 mb-1">
+          <div className="flex-1 overflow-hidden py-6 md:py-10 px-2 md:px-3 mb-1">
             {isSidebarOpen && (
-              <h3 className="font-semibold mb-4 text-[#e0e0e0]">
+              <h3 className="font-semibold mb-4 text-[#e0e0e0] text-sm md:text-base">
                 {projectName} Chats
               </h3>
             )}
 
             {isSidebarOpen && (
               <div className="my-4">
-                <h3 className="font-semibold mb-2 text-[#e0e0e0]">
+                <h3 className="font-semibold mb-2 text-[#e0e0e0] text-sm md:text-base">
                   Online Users
                 </h3>
                 <div className="space-y-1">
@@ -848,25 +854,22 @@ function Code() {
                       className="flex items-center gap-2 text-gray-300"
                     >
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">{user.data.username}</span>
+                      <span className="text-xs md:text-sm">{user.data.username}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Chat list items would go here */}
-
             {isSidebarOpen && (
-              <div className="space-y-2 overflow-y-auto  h-full ">
-                {/* Demo Messages */}
+              <div className="space-y-2 overflow-y-auto h-full">
                 <div
                   ref={(el) => {
                     if (el) {
                       el.scrollIntoView({ behavior: "smooth" });
                     }
                   }}
-                  className="space-y-2 overflow-y-auto  h-full "
+                  className="space-y-2 overflow-y-auto h-full"
                 >
                   {getAllMessages.map((message, i) => {
                     if (message.from === userId) {
@@ -874,11 +877,11 @@ function Code() {
                         <div
                           key={i}
                           className={`p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer ml-auto 
-                           w-[75%] bg-white`}
+                           w-[90%] md:w-[75%] bg-white`}
                         >
                           <div className="flex items-center gap-2">
                             <div
-                              className={`w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden`}
+                              className={`w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden`}
                             >
                               <iframe
                                 src={message.fromPic}
@@ -890,19 +893,17 @@ function Code() {
                             </div>
                             <div className="flex-1">
                               <div className="flex justify-between items-center">
-                                <p className="text-sm font-medium text-gray-700">
+                                <p className="text-xs md:text-sm font-medium text-gray-700">
                                   {message.fromName}
                                 </p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(
-                                    message.updatedAt
-                                  ).toLocaleTimeString([], {
+                                <p className="text-[10px] md:text-xs text-gray-500">
+                                  {new Date(message.updatedAt).toLocaleTimeString([], {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })}
                                 </p>
                               </div>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-xs md:text-sm text-gray-600 mt-1">
                                 {message.message}
                               </p>
                             </div>
@@ -915,11 +916,11 @@ function Code() {
                           key={i}
                           className={`p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer ${
                             message.senderName === "Wizard" ? "ml-auto" : ""
-                          } w-[75%] bg-white`}
+                          } w-[90%] md:w-[75%] bg-white`}
                         >
                           <div className="flex items-center gap-2">
                             <div
-                              className={`w-10 h-10  rounded-full flex items-center justify-center overflow-hidden`}
+                              className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center overflow-hidden`}
                             >
                               <iframe
                                 src={message.fromPic}
@@ -931,19 +932,17 @@ function Code() {
                             </div>
                             <div className="flex-1">
                               <div className="flex justify-between items-center">
-                                <p className="text-sm font-medium text-gray-700">
+                                <p className="text-xs md:text-sm font-medium text-gray-700">
                                   {message.fromName}
                                 </p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(
-                                    message.updatedAt
-                                  ).toLocaleTimeString([], {
+                                <p className="text-[10px] md:text-xs text-gray-500">
+                                  {new Date(message.updatedAt).toLocaleTimeString([], {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })}
                                 </p>
                               </div>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-xs md:text-sm text-gray-600 mt-1">
                                 {message.message}
                               </p>
                             </div>
@@ -959,7 +958,7 @@ function Code() {
           </div>
 
           {/* Search Area */}
-          <div className="p-4 border-t border-[#333] bg-[#23272E] rounded-t-2xl flex">
+          <div className="p-2 md:p-4 border-t border-[#333] bg-[#23272E] rounded-t-2xl flex">
             {isSidebarOpen && (
               <>
                 <input
@@ -967,13 +966,13 @@ function Code() {
                   value={sendMessage}
                   placeholder="Hey there type something..."
                   onChange={(e) => setSendMessage(e.target.value)}
-                  className="w-full px-3 py-2 mr-2 rounded-lg border border-[#444] bg-[#1E1E1E] text-[#e0e0e0] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2 md:px-3 py-1.5 md:py-2 mr-2 rounded-lg border border-[#444] bg-[#1E1E1E] text-[#e0e0e0] text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={messageHandler}
-                  className="py-2 px-3 text-white bg-green-600 rounded-lg cursor-pointer hover:bg-green-700 transition-all"
+                  className="py-1.5 md:py-2 px-2 md:px-3 text-white bg-green-600 rounded-lg cursor-pointer hover:bg-green-700 transition-all"
                 >
-                  <Send />
+                  <Send className="w-4 h-4 md:w-5 md:h-5" />
                 </button>
               </>
             )}
@@ -983,23 +982,23 @@ function Code() {
         {/* Main Content Area - 80% width */}
         <div
           className={`${
-            isSidebarOpen ? "w-4/5" : "w-full"
+            isSidebarOpen ? "w-0 sm:w-0 md:w-2/3 lg:w-4/5" : "w-full"
           } transition-all duration-300 flex flex-col bg-[#1E1E1E]`}
         >
           {/* Top Section - Editor and Output */}
-          <div className="flex-1 flex">
+          <div className="flex-1 flex flex-col lg:flex-row h-full w-full ">
             {/* Code Editor */}
-            <div className="w-1/2 p-4 border-r border-[#333]">
+            <div className="w-full  h-1/2 lg:h-full  lg:w-1/2 p-4 border-r border-[#333] ">
               <div className="flex flex-col h-full">
                 <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => setIsFilesOpen(!isFilesOpen)}
-                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -1009,14 +1008,14 @@ function Code() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Files
+                      <span className="hidden sm:inline">Files</span>
                     </button>
                     {selectFile && (
-                      <div className="  bg-gray-200 px-5 py-2 rounded-lg">
-                        <div className="flex items-center gap-2">
+                      <div className="bg-gray-200 px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg max-w-[200px] sm:max-w-none overflow-hidden">
+                        <div className="flex items-center gap-1 sm:gap-2">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 text-gray-500"
+                            className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                           >
@@ -1026,7 +1025,7 @@ function Code() {
                               clipRule="evenodd"
                             />
                           </svg>
-                          <span className="font-medium text-gray-700">
+                          <span className="font-medium text-gray-700 text-sm sm:text-base truncate">
                             {selectFile.fileName
                               ? selectFile.fileName
                               : selectFile.folderName}
@@ -1036,11 +1035,11 @@ function Code() {
                     )}
                     <button
                       onClick={() => setShowFileModal(true)}
-                      className="px-3 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center gap-2"
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -1050,21 +1049,21 @@ function Code() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      New File
+                      <span className="hidden sm:inline">New File</span>
                     </button>
                     <button
                       onClick={() => setShowFolderModal(true)}
-                      className="px-3 py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors flex items-center gap-2"
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
                         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                       </svg>
-                      New Folder
+                      <span className="hidden sm:inline">New Folder</span>
                     </button>
                   </div>
                   {isFilesOpen && (
@@ -1600,14 +1599,14 @@ function Code() {
                       </div>
                     </div>
                   )}
-                  <div className="flex justify-center items-center ">
+                  <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-0">
                     <button
                       onClick={handleSaveCode}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex cursor-pointer items-center gap-2 mr-2"
+                      className="w-full sm:w-auto px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex cursor-pointer items-center justify-center gap-1 sm:gap-2"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -1617,15 +1616,15 @@ function Code() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Save Code
+                      <span className="text-sm sm:text-base">Save Code</span>
                     </button>
                     <button
                       onClick={handleRunCode}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2"
+                      className="w-full sm:w-auto px-3 sm:px-4 py-1.5 sm:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-1 sm:gap-2"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
+                        className="h-4 w-4 sm:h-5 sm:w-5"
                         viewBox="0 0 20 20"
                         fill="currentColor"
                       >
@@ -1635,7 +1634,7 @@ function Code() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Run Code
+                      <span className="text-sm sm:text-base">Run Code</span>
                     </button>
                   </div>
                 </div>
@@ -1652,7 +1651,7 @@ function Code() {
                     value={code}
                     theme="vs-dark"
                     options={{
-                      fontSize: 23,
+                      fontSize: window.innerWidth >= 1024 ? 23 : 16,
                       wordWrap: "on",
                     }}
                     onMount={handleEditorDidMount}
@@ -1754,8 +1753,8 @@ function Code() {
             </div>
 
             {/* Output Area */}
-            <div className="w-1/2 p-4">
-              <h3 className="font-semibold mb-2 text-[#e0e0e0]">Output</h3>
+            <div className="w-full  h-1/2 lg:h-full  lg:w-1/2 p-4">
+              <h3 className="font-semibold mb-2 text-[#e0e0e0] mt-4">Output</h3>
               <div className="bg-[#23272E] p-4 rounded-lg h-[calc(100%-40px)] overflow-y-auto font-mono text-sm text-[#e0e0e0]">
                 <pre>
                   {output || "No output yet. Run your code to see results."}
@@ -1991,7 +1990,7 @@ function Code() {
             )}
           </div>
         </div>
-      </div>
+        </div>
     </>
   );
 }

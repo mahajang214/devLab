@@ -22,16 +22,41 @@ function App() {
           <Route path="/singup" element={<Singup />} />
           <Route path="/login" element={<Login />} />
           {/* security */}
-          <Route element={<ProtectedRoute/>}>
-              <Route path="/" element={<HomePage/>} />
-              <Route path="/followings" element={<Followings/>}/>
-              <Route path="/coders" element={<Coders/>}/>
-              <Route path="/projects" element={<Projects/>}/>
-              <Route path="/followers" element={<Followers/>}/>
-              <Route path="/code" element={<Code/>}/>
-              <Route path="/loading" element={<Loading/>} />
-              <Route path="/monaco" element={<MonacoEditor/>}/>
-          </Route>
+         
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/followings" element={
+                <ProtectedRoute>
+                  <Followings />
+                </ProtectedRoute>
+              } />
+              <Route path="/coders" element={
+                <ProtectedRoute>
+                  <Coders />
+                </ProtectedRoute>
+              } />
+              <Route path="/projects" element={
+                <ProtectedRoute>
+                  <Projects />
+                </ProtectedRoute>
+              } />
+              <Route path="/followers" element={
+                <ProtectedRoute>
+                  <Followers />
+                </ProtectedRoute>
+              } />
+              <Route path="/code" element={
+                <ProtectedRoute>
+                  <Code />
+                </ProtectedRoute>
+              } />
+            
+   
+          
+        
         </Routes>
       </BrowserRouter>
     </GoogleOAuthProvider>

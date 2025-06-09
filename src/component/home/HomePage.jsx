@@ -205,29 +205,16 @@ const HomePage = () => {
   useEffect(() => {
     getProjects();
     collabedWithProjects();
+    if (!localStorage.getItem("token") || !username) {
+      console.log("username:",username)
+      localStorage.removeItem("token");
+      navigate("/login");
+    }
 
   }, []);
 
 
-  // socket
-  // useEffect(() => {
-  //   // socket.on('connect', () => {
-  //   //   console.log(`Client is connected: `);
-  //   // });
-
-  //   // socket.on("join-room",roomid=>{
-  //   //   console.log("join room data:",roomid);
-  //   //   // setRoomID(roomid);
-  //   // });
-
-
-  //   return () => {
-  //     // socket.off('connect');
-  //     // socket.off("join-room");
-  //   };
   
-    
-  // }, []);
   
 
   return (
@@ -237,43 +224,41 @@ const HomePage = () => {
       <Nav />
 
       {/* Welcome Banner */}
-      <section className="px-6 py-12 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-b-3xl shadow-lg">
+      <section className="px-4 sm:px-6 py-8 sm:py-12 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-b-3xl shadow-lg">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-3 flex items-center gap-2">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 flex items-center gap-2">
             Welcome back, {username}
             <span className="animate-bounce">👋</span>
           </h2>
-          <p className="text-2xl sm:text-lg  text-blue-100">
+          <p className="text-lg sm:text-xl md:text-2xl text-blue-100">
             Build, collaborate, and code together in real-time with <span className="text-white font-bold">devLab</span> - your all-in-one development workspace.
           </p>
-          <div className="mt-4">
-            <p className="text-sm text-blue-100 mb-2">DevLab supports the following programming languages:</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">JavaScript (18.15.0)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">TypeScript (5.0.3)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Python (3.10.0)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Python2 (2.7.18)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Java (15.0.2)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">C (10.2.0)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">C++ (10.2.0)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Go (1.16.2)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Ruby (3.0.1)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Rust (1.68.2)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">PHP (8.2.3)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">C# (6.12.0)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Kotlin (1.8.20)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Swift (5.3.3)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Scala (3.2.2)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Dart (2.19.6)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Haskell (9.0.1)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Bash (5.2.0)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Perl (5.36.0)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">R (4.1.1)</span>
-              <span className="px-5 py-1 bg-blue-500/20 rounded-lg text-sm hover:bg-blue-500/30 transition-colors cursor-default">Lua (5.4.4)</span>
+          <div className="mt-3 sm:mt-4">
+            <p className="text-xs sm:text-sm text-blue-100 mb-2">DevLab supports the following programming languages:</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2">
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">JavaScript (18.15.0)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">TypeScript (5.0.3)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Python (3.10.0)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Python2 (2.7.18)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Java (15.0.2)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">C (10.2.0)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">C++ (10.2.0)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Go (1.16.2)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Ruby (3.0.1)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Rust (1.68.2)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">PHP (8.2.3)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">C# (6.12.0)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Kotlin (1.8.20)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Swift (5.3.3)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Scala (3.2.2)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Dart (2.19.6)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Haskell (9.0.1)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Bash (5.2.0)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Perl (5.36.0)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">R (4.1.1)</span>
+              <span className="px-2 sm:px-3 md:px-5 py-1 bg-blue-500/20 rounded-lg text-xs sm:text-sm hover:bg-blue-500/30 transition-colors cursor-default">Lua (5.4.4)</span>
             </div>
           </div>
-
-          
         </div>
       </section>
 
@@ -580,26 +565,19 @@ const HomePage = () => {
                   <div key={k}>
                     <div
                       onClick={() => setSelectedFile(project)}
-                      className="bg-white rounded-xl shadow-md p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                      className="bg-white rounded-xl shadow-md p-4 flex flex-col gap-4"
                     >
                       <span className="text-lg font-medium">
                         {project.projectName}
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => {
-                            userStore
-                              .getState()
-                              .setProjectId(project.projectID);
-                            userStore
-                              .getState()
-                              .setProjectName(project.projectName);
-                             
-                              
-                              
+                            userStore.getState().setProjectId(project.projectID);
+                            userStore.getState().setProjectName(project.projectName);
                             navigate("/code");
                           }}
-                          className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full hover:bg-green-200 cursor-pointer"
+                          className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full hover:bg-green-200 cursor-pointer text-sm sm:text-base"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -617,18 +595,14 @@ const HomePage = () => {
                         </button>
                         <button
                           onClick={() => setShowAddCollabsModal(true)}
-                          className="flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 cursor-pointer"
+                          className="flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 cursor-pointer text-sm sm:text-base"
                         >
                           <Users size={16} />
                           Add Collabs
                         </button>
-
                         <button
                           onClick={() => {
-                            if (
-                              showDetails &&
-                              singleProject.id === project.id
-                            ) {
+                            if (showDetails && singleProject.id === project.id) {
                               setShowDetails(false);
                               setSingleProject(null);
                             } else {
@@ -637,17 +611,14 @@ const HomePage = () => {
                               getProjectDetails();
                             }
                           }}
-                          className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 cursor-pointer"
+                          className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 cursor-pointer text-sm sm:text-base"
                         >
                           <Info size={16} />
                           Details
                         </button>
                         <button
-                          onClick={(e) => {
-                            // console.log("projectID",project.projectID);
-                            return handleDelete(project.projectID);
-                          }}
-                          className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full hover:bg-red-200 cursor-pointer"
+                          onClick={(e) => handleDelete(project.projectID)}
+                          className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full hover:bg-red-200 cursor-pointer text-sm sm:text-base"
                         >
                           <Trash2 size={16} />
                           Delete
@@ -668,13 +639,13 @@ const HomePage = () => {
                           animate={{ scale: 1 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <h2 className="text-lg font-semibold">
+                          <h2 className="text-base sm:text-lg font-semibold">
                             Project Name: {singleProject.projectName}
                           </h2>
-                          <h2 className="text-gray-700">
+                          <h2 className="text-sm sm:text-base text-gray-700">
                             Owner Name: {singleProject.ownerName}
                           </h2>
-                          <h2 className="text-gray-700">
+                          <h2 className="text-sm sm:text-base text-gray-700">
                             Collaborators:{" "}
                             {Array.isArray(singleProject.collabs)
                               ? singleProject.collabs.map((collab, index) => (
@@ -687,12 +658,12 @@ const HomePage = () => {
                                 ))
                               : "No collaborators"}
                           </h2>
-                          <h2 className="text-gray-700">
+                          <h2 className="text-sm sm:text-base text-gray-700">
                             Project Description:{" "}
                             {singleProject.description ||
                               "No description available"}
                           </h2>
-                          <h2 className="text-gray-700">
+                          <h2 className="text-sm sm:text-base text-gray-700">
                             Last modified:{" "}
                             {new Date(singleProject.updatedAt).toLocaleString()}
                           </h2>
@@ -709,58 +680,52 @@ const HomePage = () => {
         <div className="mt-8 flex-1 max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold mb-4">Collaborations</h1>
           {collaborations.length === 0 ? (
-            <div className="text-center text-gray-500">
+            <div className="text-center text-gray-500 py-8">
               No collaborations found
             </div>
           ) : (
-            <div className="grid grid-cols-1  gap-4">
-              {collaborations.map((project) => {
-                // console.log("collabs projects data:",project);
-                return (
-                  <div
-                    key={project._id}
-                    className="bg-white rounded-xl shadow-md p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full"
-                  >
-                    <div className="flex justify-between items-center w-full">
-                      <div>
-                        <h2 className="text-lg font-semibold">
-                          Project Name : {project.projectName}
-                        </h2>
-                        <p className="text-gray-600">
-                          Owner : {project.ownerName}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            userStore.getState().setProjectId(project._id);
-                            userStore
-                              .getState()
-                              .setProjectName(project.projectName);
-                            // console.log("project details:",project._id);
-                            navigate("/code");
-                          }}
-                          className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full hover:bg-green-200 cursor-pointer"
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {collaborations.map((project) => (
+                <div
+                  key={project._id}
+                  className="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow duration-200"
+                >
+                  <div className="flex flex-col h-full">
+                    <div className="flex-grow">
+                      <h2 className="text-lg font-semibold mb-2 line-clamp-1">
+                        {project.projectName}
+                      </h2>
+                      <p className="text-gray-600 text-sm mb-4">
+                        Owner: {project.ownerName}
+                      </p>
+                    </div>
+                    <div className="mt-auto">
+                      <button
+                        onClick={() => {
+                          userStore.getState().setProjectId(project._id);
+                          userStore.getState().setProjectName(project.projectName);
+                          navigate("/code");
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          Code
-                        </button>
-                      </div>
+                          <path
+                            fillRule="evenodd"
+                            d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>Open Project</span>
+                      </button>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </div>

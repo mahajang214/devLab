@@ -22,6 +22,7 @@ function Nav({navStyle}) {
       });
       localStorage.removeItem("token");
       console.log("logout successfull");
+      navigate("/login");
     } catch (error) {
     console.error("Error during logout:", error.message);
     }
@@ -142,39 +143,55 @@ function Nav({navStyle}) {
                   </button>
                 </div>
                 <nav className="flex flex-col gap-4">
-                  <motion.button 
-                    whileHover={{ x: 5 }}
-                    className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer"
-                  >
-                    <Users size={20} />
-                    Followers
-                  </motion.button>
-                  <motion.button 
-                    whileHover={{ x: 5 }}
-                    className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer"
-                  >
-                    <Users size={20} />
-                    Following
-                  </motion.button>
-                  <motion.button 
-                    whileHover={{ x: 5 }}
-                    className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer"
-                  >
-                    <Users size={20} />
-                    Find Coders
-                  </motion.button>
-                  <div className="relative">
+                  <Link to="/">
                     <motion.button 
                       whileHover={{ x: 5 }}
-                      className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer"
+                      className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer w-full"
                     >
-                      <Search size={20} />
-                      Find Projects
+                      <Home size={20} />
+                      Home
                     </motion.button>
-                  </div>
+                  </Link>
+                  <Link to="/followers">
+                    <motion.button 
+                      whileHover={{ x: 5 }}
+                      className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer w-full"
+                    >
+                      <Users size={20} />
+                      Followers
+                    </motion.button>
+                  </Link>
+                  <Link to="/followings">
+                    <motion.button 
+                      whileHover={{ x: 5 }}
+                      className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer w-full"
+                    >
+                      <Users size={20} />
+                      Following
+                    </motion.button>
+                  </Link>
+                  <Link to="/coders">
+                    <motion.button 
+                      whileHover={{ x: 5 }}
+                      className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer w-full"
+                    >
+                      <Users size={20} />
+                      All Coders
+                    </motion.button>
+                  </Link>
+                  <Link to="/projects">
+                    <motion.button 
+                      whileHover={{ x: 5 }}
+                      className="flex items-center gap-2 text-gray-600 hover:text-blue-600 cursor-pointer w-full"
+                    >
+                      <Folder size={20} />
+                      All Projects
+                    </motion.button>
+                  </Link>
                   <motion.button 
                     whileHover={{ x: 5 }}
-                    className="flex items-center gap-2 text-red-600 hover:text-red-800 cursor-pointer"
+                    onClick={logout}
+                    className="flex items-center gap-2 text-red-600 hover:text-red-800 cursor-pointer w-full"
                   >
                     <LogOut size={20} />
                     Logout
