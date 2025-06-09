@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { io } from 'socket.io-client';
 
 // 👇 Create the socket instance (you can use env variable here)
-const socket = io('https://devlabbackend-kvq1.onrender.com', {
+const socket = io(import.meta.env.VITE_BASE_URL, {
   transports: ["websocket"],
 });
 
