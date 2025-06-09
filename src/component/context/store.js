@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { io } from 'socket.io-client';
 
 // 👇 Create the socket instance (you can use env variable here)
-const socket = io('http://localhost:3001');
+const socket = io('https://devlabbackend-kvq1.onrender.com');
 
 
 
