@@ -60,7 +60,7 @@ function Login() {
 
         <GoogleLogin
           onSuccess={handleSuccess}
-          onError={() => console.log("Login Failed")}
+          onError={() => alert("Login Failed")}
         >
           <button className="mt-4 w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 py-2 px-4 cursor-pointer rounded-md hover:bg-gray-200 transition duration-200">
             <img
@@ -74,7 +74,7 @@ function Login() {
 
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{" "}
-          <Link to="/singup" className="text-blue-600 hover:text-blue-500">
+          <Link to="/signup" className="text-blue-600 hover:text-blue-500">
             Sign up
           </Link>
         </p>

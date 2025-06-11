@@ -92,25 +92,23 @@ function Code() {
       // setRoomID(roomid);
     });
 
-    socket.on("code-change", ({  code,fileName }) => {
+    socket.on("code-change", ({ code, fileName }) => {
       // console.log("socket code updated");
       // setCode(data.content);
 
-      if (fileName === selectFileRef.current.fileName  || fileName == selectFileRef.current.folderName){
-       return  setCode(code);
-      } 
+      if (
+        fileName === selectFileRef.current.fileName ||
+        fileName == selectFileRef.current.folderName
+      ) {
+        return setCode(code);
+      }
       return;
-
-      
     });
 
     socket.on("cursor-move", ({ username, cursorPosition, fileName }) => {
-      
-
-      if (fileName !== (selectFile?.fileName )) return; // only show for current file
+      if (fileName !== selectFile?.fileName) return; // only show for current file
       showRemoteCursor(username, cursorPosition);
     });
-    
 
     return () => {
       socket.off("message");
@@ -120,12 +118,12 @@ function Code() {
       socket.off("join-room");
       socket.off("connect");
       socket.off("cursor-move");
-    if (!localStorage.getItem("token") || !username) {
-      console.log("username:",username)
-      localStorage.removeItem("token");
-      navigate("/login");
-    }
-    socket.off("disconnect");
+      if (!localStorage.getItem("token") || !username) {
+        console.log("username:", username);
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+      socket.off("disconnect");
     };
   }, []);
 
@@ -232,7 +230,6 @@ function Code() {
   };
 
   const handleCreateFile = async () => {
-    
     if (newFileName.includes(" ")) {
       alert(
         "File name cannot contain spaces. Please use underscores or hyphens instead."
@@ -313,7 +310,6 @@ function Code() {
   };
 
   const handleCreateFolder = async () => {
-    
     const isFolderNameExists = files.some(
       (folder) =>
         folder.folderName === newFolderName ||
@@ -504,31 +500,24 @@ function Code() {
       return console.log("error: Search box is empty");
     }
     // console.log("ai query:",query);
+    // console.log("api key:",import.meta.env.VITE_OPENROUTER_API_KEY);
 
     try {
       setAiLoading(true);
+     
+      // console.log("base url:",import.meta.env.VITE_BASE_LOCAL_URL)
       const res = await axios.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          model: "meta-llama/llama-3-70b-instruct", // or "meta-llama/llama-3-8b-instruct"
-          messages: [{ role: "user", content: query }],
-        },
+        `${import.meta.env.VITE_BASE_URL}/ai/ask-ai`,
+        { query },
         {
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
-
-      // const reply = ;
-
-      // console.log("All messages successully fetched");
-      // console.log("ai response data:", res.data.data);
-      // setGetAllMessages(res.data.data);
       setAiResponse((prev) => [
         ...prev,
-        { question: query, answer: res.data.choices[0]?.message?.content },
+        { question: query, answer: res.data.data.choices[0]?.message?.content },
       ]);
 
       setAiLoading(false);
@@ -538,6 +527,7 @@ function Code() {
       setAiLoading(false);
 
       console.log("error:", error.message);
+      alert("AI usage limit exceeded. Please try again later or upgrade your plan for more AI interactions.")
     }
   };
 
@@ -552,16 +542,19 @@ function Code() {
     // console.log("selected file fileName:",selectFile.fileName);
     // console.log("code :",code);
 
-    if(selectFileRef.current){
-    
-      socket.emit("code-change", { roomid: projectName, code,fileName:(selectFileRef.current.fileName || selectFileRef.current.folderName) });
-  
+    if (selectFileRef.current) {
+      socket.emit("code-change", {
+        roomid: projectName,
+        code,
+        fileName:
+          selectFileRef.current.fileName || selectFileRef.current.folderName,
+      });
+
       // console.log("sended code to socket")
-  
+
       const saveInterval = setInterval(() => {
         handleSaveCode();
       }, 5 * 60 * 1000); // 5 minutes in milliseconds
-
       // Cleanup interval on component unmount
       return () => clearInterval(saveInterval);
     }
@@ -723,7 +716,6 @@ function Code() {
 
   const editorRef = useRef(null);
 
- 
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
 
@@ -747,7 +739,9 @@ function Code() {
           line: position.lineNumber,
           column: position.column,
         },
-        fileName: selectFileRef.current ? (selectFileRef.current.fileName || selectFileRef.current.folderName) : "unknown",
+        fileName: selectFileRef.current
+          ? selectFileRef.current.fileName || selectFileRef.current.folderName
+          : "unknown",
         username,
       });
     });
@@ -759,7 +753,7 @@ function Code() {
 
     // Remove previous decoration
     const oldDecorations = remoteCursors.get(username);
-    
+
     if (oldDecorations) {
       editorRef.current.deltaDecorations(oldDecorations, []);
     }
@@ -855,7 +849,9 @@ function Code() {
                       className="flex items-center gap-2 text-gray-300"
                     >
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs md:text-sm">{user.data.username}</span>
+                      <span className="text-xs md:text-sm">
+                        {user.data.username}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -898,7 +894,9 @@ function Code() {
                                   {message.fromName}
                                 </p>
                                 <p className="text-[10px] md:text-xs text-gray-500">
-                                  {new Date(message.updatedAt).toLocaleTimeString([], {
+                                  {new Date(
+                                    message.updatedAt
+                                  ).toLocaleTimeString([], {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })}
@@ -937,7 +935,9 @@ function Code() {
                                   {message.fromName}
                                 </p>
                                 <p className="text-[10px] md:text-xs text-gray-500">
-                                  {new Date(message.updatedAt).toLocaleTimeString([], {
+                                  {new Date(
+                                    message.updatedAt
+                                  ).toLocaleTimeString([], {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                   })}
@@ -1991,7 +1991,7 @@ function Code() {
             )}
           </div>
         </div>
-        </div>
+      </div>
     </>
   );
 }
