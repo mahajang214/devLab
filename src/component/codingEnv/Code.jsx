@@ -93,16 +93,15 @@ function Code() {
     });
 
     socket.on("code-change", ({ code, fileName }) => {
-      // console.log("socket code updated");
-      // setCode(data.content);
-
       if (
         fileName === selectFileRef.current.fileName ||
-        fileName == selectFileRef.current.folderName
+        fileName === selectFileRef.current.folderName
       ) {
-        return setCode(code);
+        if (code === selectFileRef.current.code) {
+          return;
+        }
+        setCode(code);
       }
-      return;
     });
 
     socket.on("cursor-move", ({ username, cursorPosition, fileName }) => {
