@@ -232,9 +232,7 @@ function Code() {
   };
 
   const handleCreateFile = async () => {
-    if (!newFileName || !projectID) {
-      return alert("All fields are required");
-    }
+    
     if (newFileName.includes(" ")) {
       alert(
         "File name cannot contain spaces. Please use underscores or hyphens instead."
@@ -315,9 +313,7 @@ function Code() {
   };
 
   const handleCreateFolder = async () => {
-    if (!newFolderName || !projectID) {
-      return alert("All fields are required");
-    }
+    
     const isFolderNameExists = files.some(
       (folder) =>
         folder.folderName === newFolderName ||
@@ -562,7 +558,12 @@ function Code() {
   
       // console.log("sended code to socket")
   
-      handleSaveCode();
+      const saveInterval = setInterval(() => {
+        handleSaveCode();
+      }, 5 * 60 * 1000); // 5 minutes in milliseconds
+
+      // Cleanup interval on component unmount
+      return () => clearInterval(saveInterval);
     }
 
     return;
