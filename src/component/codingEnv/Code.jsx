@@ -118,8 +118,8 @@ function Code() {
       socket.off("connect");
       socket.off("cursor-move");
       if (!localStorage.getItem("token") || !username) {
-        console.log("username:", username);
-        localStorage.removeItem("token");
+        // console.log("username:", username);
+        // localStorage.removeItem("token");
         navigate("/login");
       }
       socket.off("disconnect");
