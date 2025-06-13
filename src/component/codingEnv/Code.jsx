@@ -541,24 +541,22 @@ function Code() {
     // console.log("selected file fileName:",selectFile.fileName);
     // console.log("code :",code);
 
-    if (selectFileRef.current) {
-      socket.emit("code-change", {
-        roomid: projectName,
-        code,
-        fileName:
-          selectFileRef.current.fileName || selectFileRef.current.folderName,
-      });
-
-      // console.log("sended code to socket")
+   
+   
 
       const saveInterval = setInterval(() => {
         handleSaveCode();
-      }, 5 * 60 * 1000); // 5 minutes in milliseconds
-      // Cleanup interval on component unmount
+        if (selectFileRef.current) {
+          socket.emit("code-change", {
+            roomid: projectName,
+            code,
+            fileName:
+              selectFileRef.current.fileName || selectFileRef.current.folderName,
+          })}
+      }, 5 * 60 * 1000); // every 5 minutes
+    
+      // Cleanup interval on unmount or when code changes
       return () => clearInterval(saveInterval);
-    }
-
-    return;
   }, [code]);
 
   // console.log("file id:",fileID);
