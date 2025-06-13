@@ -536,10 +536,7 @@ function Code() {
   }, []);
 
   useEffect(() => {
-    // socket.emit("code-change", ({ roomID:roomID, data:code }));
-    // handleSaveCode();
-    // console.log("selected file fileName:",selectFile.fileName);
-    // console.log("code :",code);
+    
 
    
    
