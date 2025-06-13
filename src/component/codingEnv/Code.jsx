@@ -207,6 +207,13 @@ function Code() {
         fileID: fileID,
         content: code,
       });
+
+      socket.emit("code-change", {
+        roomid: projectName,
+        code,
+        fileName:
+          selectFileRef.current.fileName || selectFileRef.current.folderName,
+      })
       const res = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/code/update_code`,
         {
@@ -535,26 +542,22 @@ function Code() {
     getProjectDetails();
   }, []);
 
-  useEffect(() => {
+  // useEffect(() => {
     
 
    
    
 
-      const saveInterval = setInterval(() => {
-        handleSaveCode();
-        if (selectFileRef.current) {
-          socket.emit("code-change", {
-            roomid: projectName,
-            code,
-            fileName:
-              selectFileRef.current.fileName || selectFileRef.current.folderName,
-          })}
-      }, 5 * 60 * 1000); // every 5 minutes
+  //     const saveInterval = setInterval(() => {
+  //       handleSaveCode();
+  //       if (selectFileRef.current) {
+        
+  //       }
+  //     }, 5 * 60 * 1000); // every 5 minutes
     
-      // Cleanup interval on unmount or when code changes
-      return () => clearInterval(saveInterval);
-  }, [code]);
+  //     // Cleanup interval on unmount or when code changes
+  //     return () => clearInterval(saveInterval);
+  // }, [code]);
 
   // console.log("file id:",fileID);
   const deleteFile = async () => {
